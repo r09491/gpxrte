@@ -11,7 +11,7 @@ from cargpx.overviewcommands import commandSingleSegmentDetail
 from cargpx.daimlercommands import convertToRoute  
 
 from cargpx.segmentcommands import getCoords
-from cargpx.segmentcommands import commandSetname  
+from cargpx.segmentcommands import commandName  
 from cargpx.segmentcommands import commandPullAtomic
 from cargpx.segmentcommands import commandPullByCoord 
 from cargpx.segmentcommands import commandPullByDistance 
@@ -77,17 +77,17 @@ def  runDaimler(inputs):
     return result
 
 
-def  runSegmentSetname(inputs):
+def  runSegmentName(inputs):
     """
     Sets the name of the RTE segment to the specified name.
     """
     try:
-        commandSetname(inputs.anygpxfile, \
+        commandName(inputs.anygpxfile, \
                            inputs.segmentnumber, inputs.segmentname)
     except commandError as e:
         print (e)
     else:
-        print ("gpxrte :-) Setname completed ok.")
+        print ("gpxrte :-) Name completed ok.")
 
 
 def runSegmentPullByCoord(inputs):
@@ -301,16 +301,15 @@ def parse(commandline):
                             help='RTE segment number to use')
 
 
-    setnameParser = subparsers.add_parser('setname', help='Sets the name of an RTE segment')
-    setnameParser.set_defaults(func=runSegmentSetname)
-    setnameParser.add_argument(dest='segmentname', \
+    nameParser = subparsers.add_parser('name', help='Sets the name of an RTE segment')
+    nameParser.add_argument(dest='segmentname', \
                             help='RTE segment name to set')
-    setnameParser.add_argument(dest='segmentnumber', nargs='?', \
+    nameParser.add_argument(dest='segmentnumber', nargs='?', \
                             type=int, default=0, \
                             help='RTE segment number to use')
+    nameParser.set_defaults(func=runSegmentName)
     
     pullParser = subparsers.add_parser('pull', help='Pulls an RTE segment')
- 
     pullSubparser = pullParser.add_subparsers(help='subcommands pull')
 
     pullSubparserAtomic = pullSubparser.add_parser('atomic', \

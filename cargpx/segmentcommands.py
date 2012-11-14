@@ -34,7 +34,7 @@ def modifyGpxFile(sFileName, iSegmentNumber, applyModifier, args):
     eAnyroot.write(sFileName)
 
 
-def commandSetname(sFileName, iSegmentNumber, sName):
+def commandName(sFileName, iSegmentNumber, sName):
     """
     """
 
