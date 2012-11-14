@@ -12,9 +12,10 @@ from cargpx.daimlercommands import convertToRoute
 
 from cargpx.segmentcommands import getCoords
 from cargpx.segmentcommands import commandSetname  
-from cargpx.segmentcommands import commandExtractAtomic
-from cargpx.segmentcommands import commandExtractByCoord 
-from cargpx.segmentcommands import commandExtractByDistance 
+from cargpx.segmentcommands import commandPullAtomic
+from cargpx.segmentcommands import commandPullByCoord 
+from cargpx.segmentcommands import commandPullByDistance 
+from cargpx.segmentcommands import commandPush
 
 from cargpx import gpx as gpx
 
@@ -89,10 +90,10 @@ def  runSegmentSetname(inputs):
         print ("gpxrte :-) Setname completed ok.")
 
 
-def runSegmentExtractByCoord(inputs):
+def runSegmentPullByCoord(inputs):
     """
     """
-    print ("gpxrte :-, Extract RTE by coords")
+    print ("gpxrte :-, Pull RTE by coords")
 
     sInfile=os.path.abspath(inputs.infile)
     if not os.path.isfile(sInfile):
@@ -154,23 +155,23 @@ def runSegmentExtractByCoord(inputs):
             return -11
 
     try:
-        outfile = commandExtractByCoord( \
+        outfile = commandPullByCoord( \
             inputs.infile,inputs.insegment,inputs.intype,
             inputs.outfile,beglat,beglon,endlat,endlon)
         print ("gpxrte ++  Output to %s" % (outfile))
     except commandError as e:
         print (e)
     else:
-        print ("gpxrte :-) Extract by coord ok.")
+        print ("gpxrte :-) Pull by coord ok.")
 
 
-def runSegmentExtractByDistance(inputs):
+def runSegmentPullByDistance(inputs):
     """
     """
     meter = inputs.meter if inputs.meter is not None else 22500.0
     meter = -meter if meter < 0.0 else meter
 
-    print ("gpxrte :-, Extract RTE by distance")
+    print ("gpxrte :-, Pull RTE by distance")
 
     sInfile=os.path.abspath(inputs.infile)
     if not os.path.isfile(sInfile):
@@ -182,19 +183,19 @@ def runSegmentExtractByDistance(inputs):
         return -2
 
     try:
-        outSegs = commandExtractByDistance(sInfile,
+        outSegs = commandPullByDistance(sInfile,
                          inputs.insegment, meter, inputs.outfile)
         print ("gpxrte ++  Created %d RTE files." % (outSegs))
     except commandError as e:
         print (e)
     else:
-        print ("gpxrte :-) Extract by distance ok.")
+        print ("gpxrte :-) Pull by distance ok.")
 
 
-def  runSegmentExtractAtomic(inputs):
+def  runSegmentPullAtomic(inputs):
     """
     """
-    print ("gpxrte :-, Extract RTE atomic")
+    print ("gpxrte :-, Pull RTE atomic")
 
     sInfile=os.path.abspath(inputs.infile)
     if not os.path.isfile(sInfile):
@@ -206,30 +207,37 @@ def  runSegmentExtractAtomic(inputs):
         return -2
 
     try:
-        iNumFiles=commandExtractAtomic(sInfile, inputs.insegment)
+        iNumFiles=commandPullAtomic(sInfile, inputs.insegment)
     except commandError as e:
         print (e)
     else:
-        print ("gpxrte :-) %d files written." % (iNumFiles))
-        print ("gpxrte :-) Extract atomic segment ok.")
+        print ("gpxrte :-; %d files written." % (iNumFiles))
+        print ("gpxrte :-) Pull atomic segment ok.")
 
 
-def  runInsert(inputs):
+def  runPush(inputs):
     """
     """
-    result=":-( 'Insert' command failed )-:"
+    print ("gpxrte :-, Push RTE atomic")
 
-    eAnysegs = gpx.Garmin(inputs.anygpxfile).oldRtes()
-    if len(eAnysegs) > 0:
-        anysegnum=inputs.segmentnumber
-        if (anysegnum >= 0) and (anysegnum < len(eAnysegs)):
-            eAnyseg=eAnysegs[anysegnum]
-            ##### Add call
-        else:
-            result = ":-( %s: %d )-:" % ("Segment number out of range", anysegnum)
+    sOutfile=os.path.abspath(inputs.outfile)
+
+    sInfile=os.path.abspath(inputs.infile)
+    if not os.path.isfile(sInfile):
+        print ("gpxrte :-( Illegal GPX input file %s." % (sInfile))
+        return -1
+
+    if (inputs.intype != "rte"):
+        print ("gpxrte :-( For RTE segment only!")
+        return -2
+
+    try:
+        iNumSegs=commandPush(sInfile, inputs.insegment, sOutfile)
+    except commandError as e:
+        print (e)
     else:
-        result = ":-( %s )-:" % ("RTE segment is missing.")
-    return result
+        print ("gpxrte :-; %d segments written." % (iNumSegs))
+        print ("gpxrte :-) Push atomic segment ok.")
 
 
 def  runDelete(inputs):
@@ -287,6 +295,7 @@ def parse(commandline):
                             type=int, default=0, \
                             help='RTE segment number to use')
 
+
     setnameParser = subparsers.add_parser('setname', help='Sets the name of an RTE segment')
     setnameParser.set_defaults(func=runSegmentSetname)
     setnameParser.add_argument(dest='segmentname', \
@@ -295,74 +304,80 @@ def parse(commandline):
                             type=int, default=0, \
                             help='RTE segment number to use')
     
-    extractParser = subparsers.add_parser('extract', help='Extracts an RTE segment')
+    pullParser = subparsers.add_parser('pull', help='Pulls an RTE segment')
  
-    extractSubparser = extractParser.add_subparsers(help='subcommands extract')
+    pullSubparser = pullParser.add_subparsers(help='subcommands pull')
 
-    extractSubparserAtomic = extractSubparser.add_parser('atomic', \
-                               help='Extracts complete RTE segments')
-    extractSubparserAtomic.add_argument('-s', '--insegment',dest='insegment', \
-                            type=int, help='Segment number to use for extract')
-    extractSubparserAtomic.add_argument('-t', '--intype', dest='intype', \
+    pullSubparserAtomic = pullSubparser.add_parser('atomic', \
+                               help='Pulls complete RTE segments')
+    pullSubparserAtomic.add_argument('-s', '--insegment',dest='insegment', \
+                            type=int, help='Segment number to use for pull')
+    pullSubparserAtomic.add_argument('-t', '--intype', dest='intype', \
                             choices=('trk', 'rte', 'wpt'), \
-                            default='rte', help='Segment type to use for extract')
-    extractSubparserAtomic.add_argument('-f', '--infile', dest='infile', required=True, \
-                            help='Any GPX file for extract', )
-    extractSubparserAtomic.set_defaults(func=runSegmentExtractAtomic)
+                            default='rte', help='Segment type to use for pull')
+    pullSubparserAtomic.add_argument('-f', '--infile', dest='infile', required=True, \
+                            help='Any GPX file for pull', )
+    pullSubparserAtomic.set_defaults(func=runSegmentPullAtomic)
 
 
-    extractSubparserByCoord = extractSubparser.add_parser('coord', \
-                              help='Extracts an RTE segment closest to the coords or cities')
-    extractSubparserByCoord.add_argument('-blat','--beglat', dest='beglat', \
+    pullSubparserByCoord = pullSubparser.add_parser('coord', \
+                              help='Pulls an RTE segment closest to the coords or cities')
+    pullSubparserByCoord.add_argument('-blat','--beglat', dest='beglat', \
                              type=float, help='New route begin coord (lat)')
-    extractSubparserByCoord.add_argument('-blon','--beglon', dest='beglon', \
+    pullSubparserByCoord.add_argument('-blon','--beglon', dest='beglon', \
                             type=float, help='New route begin coord (lon)')
-    extractSubparserByCoord.add_argument('-elat','--endlat',dest='endlat',  \
+    pullSubparserByCoord.add_argument('-elat','--endlat',dest='endlat',  \
                             type=float, help='New route end coord (lat)')
-    extractSubparserByCoord.add_argument('-elon','--endlon',dest='endlon',  \
+    pullSubparserByCoord.add_argument('-elon','--endlon',dest='endlon',  \
                             type=float, help='New route end coord (lon)')
-    extractSubparserByCoord.add_argument('-bc','--begcity',dest='begcity',  \
+    pullSubparserByCoord.add_argument('-bc','--begcity',dest='begcity',  \
                             help='New route begin city name')
-    extractSubparserByCoord.add_argument('-bi','--begcityindex',dest='begcityindex',  \
+    pullSubparserByCoord.add_argument('-bi','--begcityindex',dest='begcityindex',  \
                             type=int, help='New route begin city index')
-    extractSubparserByCoord.add_argument('-ec','--endcity',dest='endcity',  \
+    pullSubparserByCoord.add_argument('-ec','--endcity',dest='endcity',  \
                             help='New route end city')
-    extractSubparserByCoord.add_argument('-ei','--endcityindex',dest='endcityindex',  \
+    pullSubparserByCoord.add_argument('-ei','--endcityindex',dest='endcityindex',  \
                             type=int, help='New route end city index')
 
-    extractSubparserByCoord.add_argument('-s', '--insegment',dest='insegment', \
+    pullSubparserByCoord.add_argument('-s', '--insegment',dest='insegment', \
                             type=int, default=0, help='Segment number to use for input')
-    extractSubparserByCoord.add_argument('-t', '--intype', dest='intype', \
+    pullSubparserByCoord.add_argument('-t', '--intype', dest='intype', \
                             choices=('trk', 'rte', 'wpt'), \
                             default='rte', help='Segment type to use for input')
-    extractSubparserByCoord.add_argument('-f', '--infile', dest='infile', required=True, \
+    pullSubparserByCoord.add_argument('-f', '--infile', dest='infile', required=True, \
                             help='Any GPX file for input', )
-    extractSubparserByCoord.add_argument('-F', '--outfile', dest='outfile', \
+    pullSubparserByCoord.add_argument('-F', '--outfile', dest='outfile', \
                             required=True, help='Any GPX file for output', )
-    extractSubparserByCoord.set_defaults(func=runSegmentExtractByCoord)
+    pullSubparserByCoord.set_defaults(func=runSegmentPullByCoord)
 
 
-    extractSubparserByDistance = extractSubparser.add_parser('distance', \
-                              help='Extracts RTE segments by distances')
-    extractSubparserByDistance.add_argument('-m','--meter', dest='meter', \
+    pullSubparserByDistance = pullSubparser.add_parser('distance', \
+                              help='Pulls RTE segments by distances')
+    pullSubparserByDistance.add_argument('-m','--meter', dest='meter', \
                              type=float, help='Desired route distance (m)')
-    extractSubparserByDistance.add_argument('-s', '--insegment',dest='insegment', \
+    pullSubparserByDistance.add_argument('-s', '--insegment',dest='insegment', \
                             type=int, default=0, help='Segment number to use for input')
-    extractSubparserByDistance.add_argument('-t', '--intype', dest='intype', \
+    pullSubparserByDistance.add_argument('-t', '--intype', dest='intype', \
                             choices=('trk', 'rte', 'wpt'), \
                             default='rte', help='Segment type to use for input')
-    extractSubparserByDistance.add_argument('-f', '--infile', dest='infile', \
+    pullSubparserByDistance.add_argument('-f', '--infile', dest='infile', \
                             required=True, help='Any GPX file for input', )
-    extractSubparserByDistance.add_argument('-F', '--outfile', dest='outfile', \
+    pullSubparserByDistance.add_argument('-F', '--outfile', dest='outfile', \
                             required=True, help='Any GPX file for output', )
-    extractSubparserByDistance.set_defaults(func=runSegmentExtractByDistance)
+    pullSubparserByDistance.set_defaults(func=runSegmentPullByDistance)
 
 
-    insertParser = subparsers.add_parser('insert', help='Inserts an RTE segment')
-    insertParser.set_defaults(func=runInsert)
-    insertParser.add_argument(dest='segmentnumber', nargs='?', \
-                            type=int, default=0, \
-                            help='RTE segment number to use')
+    pushParser = subparsers.add_parser('push', help='Pushes an RTE segment')
+    pushParser.add_argument('-s', '--insegment',dest='insegment', \
+                             type=int, help='Segment number to use for input')
+    pushParser.add_argument('-t', '--intype', dest='intype', \
+                            choices=('trk', 'rte', 'wpt'), \
+                            default='rte', help='Segment type to use for input')
+    pushParser.add_argument('-f', '--infile', dest='infile', \
+                            required=True, help='Any GPX file for input', )
+    pushParser.add_argument('-F', '--outfile', dest='outfile', \
+                            required=True, help='Any GPX file for output', )
+    pushParser.set_defaults(func=runPush)
 
     deleteParser = subparsers.add_parser('delete', help='Deletes an RTE segment')
     deleteParser.set_defaults(func=runDelete)

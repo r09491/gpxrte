@@ -230,7 +230,6 @@ class Rte(object):
         """
         for ePt in eFromPoints: self.eSegment.append(deepcopy(ePt.ePoint)) 
 
-
 class Wpt(object):
     def __init__(self,eSegment):
         self.eSegment=eSegment
@@ -361,6 +360,13 @@ class Gpx(object):
         """
         return [Rte(etree.SubElement(self.root, self.tRte)) \
                     for e in range(num)]
+
+    def cloneRtes(self, eFromSegs):
+        """
+        Appends the RTE segments to the GPX root
+        """
+        for eSeg in eFromSegs: self.root.append(deepcopy(eSeg.eSegment))
+ 
 
     def oldWpts(self):
         """

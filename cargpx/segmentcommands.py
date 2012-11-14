@@ -1,5 +1,7 @@
+import os
+
 from .gpx import Gpx, Rte
-from .latlon import LatLon, minmaxOf
+from .latlon import LatLon, minmaxOf, NULL_BOUNDS
 from .error import commandError
 
 def getNowZulu():
@@ -34,7 +36,6 @@ def modifyGpxFile(sFileName, iSegmentNumber, applyModifier, args):
     eAnyroot.write(sFileName)
 
 
-
 def commandSetname(sFileName, iSegmentNumber, sName):
     """
     """
@@ -65,18 +66,15 @@ def writeSegment(eInSeg, iBeg=None, iEnd=None, sName=None, sExt=".gpx"):
 
     inPts=(ePt.peek() for ePt in eInPts)
     inLatLons=[LatLon(pt[0],pt[1]) for pt in inPts]
-
-    if sName is None:
-        eInName = eInSeg.oldName()
-        sName = eInName.peek()
  
     from .schemes import gpsbabel
     eOutRoot = gpsbabel()
     eOutSeg = eOutRoot.oldRtes()[0] 
     eOutSeg.clonePts(eInPts[iBeg:iEnd])
 
+    eInName = eInSeg.oldName()
     eOutName = eOutSeg.oldName()
-    eOutName.poke(sName)
+    eOutName.clone(eInName)
 
     eOutMetadata = eOutRoot.oldMetadata()
     eOutMetadataBounds = eOutMetadata.oldBounds()
@@ -84,10 +82,12 @@ def writeSegment(eInSeg, iBeg=None, iEnd=None, sName=None, sExt=".gpx"):
     eOutMetadataTime = eOutMetadata.oldTime()
     eOutMetadataTime.poke(getNowZulu())
 
+    if sName is None:
+        sName = eInName.peek()
     eOutRoot.write(sName + sExt)
     
 
-def commandExtractAtomic(sInfile, iSegment):
+def commandPullAtomic(sInfile, iSegment):
     """
     Returns GPX file with the complete RTE segment
     """
@@ -112,7 +112,7 @@ def commandExtractAtomic(sInfile, iSegment):
     return iSegWritten
 
 
-def commandExtractByCoord(sInFile,iInSegment,iInType,sOutFile, \
+def commandPullByCoord(sInFile,iInSegment,iInType,sOutFile, \
                           fBeginLat,fBeginLon,fEndLat,fEndLon):
     """
     Returns a GPX file with a single RTE segment with the
@@ -163,11 +163,12 @@ def commandExtractByCoord(sInFile,iInSegment,iInType,sOutFile, \
     import os
     pre, ext = os.path.splitext(os.path.basename(sOutFile))
 
-    writeSegment(eInSeg,iBegin,iEnd+1,sName=("%s__%04d_%04d__coord.gpx" % (pre,iBegin,iEnd)),sExt=ext)
+    writeSegment(eInSeg,iBegin,iEnd+1,sName=("%s__%04d_%04d__coord.gpx" % \
+                                                 (pre,iBegin,iEnd)),sExt=ext)
     return 1
 
 
-def commandExtractByDistance(sInFile,iSegment,sOutFile,fMeter,):
+def commandPullByDistance(sInFile,iSegment,sOutFile,fMeter,):
     """
     Splits a long GPX route into several RTEs segments not exceeding the
     requested distance. The segments may be stored in individual files
@@ -199,7 +200,82 @@ def commandExtractByDistance(sInFile,iSegment,sOutFile,fMeter,):
     for iEnd in range(1,len(inLatLons)):
         fLength += inLatLons[iEnd].rangeTo(inLatLons[iEnd-1])
         if fLength < fMeter: continue
-        writeSegment(eInSeg,iBegin,iEnd,sName=("%s__%03d__distance" % (pre,iCount)),sExt=ext)
-        iBegin,iCount,fLength = iEnd-1,iCount+1,inLatLons[iEnd].rangeTo(inLatLons[iEnd-1])
+        writeSegment(eInSeg,iBegin,iEnd,sName=("%s__%03d__distance" % \
+                                                   (pre,iCount)),sExt=ext)
+        iBegin,iCount,fLength = \
+            iEnd-1,iCount+1,inLatLons[iEnd].rangeTo(inLatLons[iEnd-1])
 
     return iCount
+
+
+def commandPush(sInfile,iInSegment,sOutfile):
+    """
+    Appends a GPX file to another GPX file with propbly multiple segments
+    """
+
+    eInRoot = Gpx(sInfile)
+    if eInRoot is None:
+        raise commandError("NOROOT")
+
+    eInSegs = eInRoot.oldRtes()
+    if eInSegs is None: 
+        raise commandError("NOSEG")
+
+    if os.path.isfile(sOutfile):
+        # The out file exists: append
+
+        eOutRoot = Gpx(sOutfile)
+        if eOutRoot is None:
+            raise commandError("NOROOT")
+
+        if iInSegment is None:
+            # Push everything
+            eOutRoot.cloneRtes(eInSegs)
+        elif (iInSegment >= 0) and (iInSegment < len(eInSegs)):
+            # Push only the selected
+            eOutRoot.cloneRtes([eInSegs[iInSegment]])
+        else:
+            raise commandError("ILLSEGNUM")
+
+        eOutSegs=eOutRoot.oldRtes()
+        if eOutSegs is None: 
+            raise commandError("NOSEG")
+
+        # Calculate the bounds of the covered area
+        outSegMinMax = NULL_BOUNDS
+        for eOutSeg in eOutRoot.oldRtes():
+            eOutSegPts = eOutSeg.oldPts()
+            if eOutSegPts is None: continue
+            outSegPts=(eSegPt.peek() for eSegPt in eOutSegPts)
+            outSegLatLons=[LatLon(pt[0],pt[1]) for pt in outSegPts]
+            outSegMinMax=minmaxOf(outSegLatLons,outSegMinMax)
+
+        # Store the bounds
+        eOutMetadata = eOutRoot.oldMetadata()
+        eOutMetadataBounds = eOutMetadata.oldBounds()
+        eOutMetadataBounds.poke(outSegMinMax)
+
+        # Update the time
+        eOutMetadataTime = eOutMetadata.oldTime()
+        eOutMetadataTime.poke(getNowZulu())
+
+        eOutRoot.write(sOutfile)
+        iSegWritten = len(eOutSegs)
+
+    else:
+        # The outfile does not exist: copy
+
+        if iInSegment is None:
+            # Clone the whole in file
+            eInRoot.write(sOutfile)
+            iSegWritten = len(eInSegs)
+
+        else:
+            # Clone the segement of the in file
+            if (iInSegment < 0) or (iInSegment >= len(eInSegs)):
+                raise commandError("ILLSEGNUM")
+            sOutName,sOutExt=os.path.splitext(sOutfile)
+            writeSegment (eInSegs[iInSegment], sName=sOutName,sExt=sOutExt)
+            iSegWritten = 1
+
+    return iSegWritten

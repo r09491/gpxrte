@@ -110,11 +110,12 @@ def eleProfileOf(lEle):
 
     return climb, descend
 
-def minmaxOf(lLatlon):
+NULL_BOUNDS = (90.0,180.0,-90.0,-180.0)
+def minmaxOf(lLatlon,bounds=NULL_BOUNDS):
     """
     Returns the min, max bounds for the points 
     """
-    minlat, minlon, maxlat, maxlon = 90.0, 180.0, -90.0, -180.0
+    minlat,minlon,maxlat,maxlon=bounds
     for ll in lLatlon:
         if ll.lat<minlat:minlat=ll.lat
         if ll.lon<minlon:minlon=ll.lon
