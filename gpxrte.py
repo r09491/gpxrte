@@ -16,6 +16,7 @@ from cargpx.segmentcommands import commandPullAtomic
 from cargpx.segmentcommands import commandPullByCoord 
 from cargpx.segmentcommands import commandPullByDistance 
 from cargpx.segmentcommands import commandPush
+from cargpx.segmentcommands import commandPurge
 
 from cargpx import gpx as gpx
 
@@ -46,8 +47,7 @@ def  runShow(inputs):
             print (e)
     else:
         try:
-            commandSingleSegmentDetail( \
-                inputs.infile,inputs.insegment)
+            commandSingleSegmentDetail(inputs.infile,inputs.insegment)
         except commandError as e:
             print (e)
     return 0
@@ -240,22 +240,27 @@ def  runPush(inputs):
         print ("gpxrte :-) Push atomic segment ok.")
 
 
-def  runDelete(inputs):
+def  runPurge(inputs):
     """
     """
-    result=":-( 'Delete' command failed )-:"
+    print ("gpxrte :-, Purge RTE atomic")
 
-    eAnysegs = gpx.Garmin(inputs.anygpxfile).oldRtes()
-    if len(eAnysegs) > 0:
-        anysegnum=inputs.segmentnumber
-        if (anysegnum >= 0) and (anysegnum < len(eAnysegs)):
-            eAnyseg=eAnysegs[anysegnum]
-            ##### Add call
-        else:
-            result = ":-( %s: %d )-:" % ("Segment number out of range", anysegnum)
+    sInfile=os.path.abspath(inputs.infile)
+    if not os.path.isfile(sInfile):
+        print ("gpxrte :-( Illegal GPX input file %s." % (sInfile))
+        return -1
+
+    if (inputs.intype != "rte"):
+        print ("gpxrte :-( For RTE segment only!")
+        return -2
+
+    try:
+        iNumSegs=commandPurge(sInfile, inputs.insegment)
+    except commandError as e:
+        print (e)
     else:
-        result = ":-( %s )-:" % ("RTE segment is missing.")
-    return result
+        print ("gpxrte :-; %d segments written." % (iNumSegs))
+        print ("gpxrte :-) Purge atomic segment ok.")
 
 
 def main(inputs):
@@ -379,11 +384,16 @@ def parse(commandline):
                             required=True, help='Any GPX file for output', )
     pushParser.set_defaults(func=runPush)
 
-    deleteParser = subparsers.add_parser('delete', help='Deletes an RTE segment')
-    deleteParser.set_defaults(func=runDelete)
-    deleteParser.add_argument(dest='segmentnumber', nargs='?', \
-                            type=int, default=0, \
-                            help='RTE segment number to use')
+
+    purgeParser = subparsers.add_parser('purge', help='Purges an RTE segment')
+    purgeParser.add_argument('-s', '--insegment',dest='insegment', type=int, default=0, \
+                                required=True, help='Segment number to remove')
+    purgeParser.add_argument('-t', '--intype', dest='intype', \
+                            choices=('trk', 'rte', 'wpt'), \
+                            default='rte', help='Segment type to use for input')
+    purgeParser.add_argument('-f', '--infile', dest='infile', \
+                            required=True, help='Any GPX file for input', )
+    purgeParser.set_defaults(func=runPurge)
 
 
     try:

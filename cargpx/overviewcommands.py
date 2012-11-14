@@ -72,9 +72,6 @@ def commandAllSegmentsOverview(sInFile):
         raise commandError("NOROOT")
 
     eInSegs = eInRoot.oldRtes()
-    if (eInSegs is None) or (len(eInSegs) == 0): 
-        raise commandError("ILLSEGTYP")
-
     return showAllSegmentsOverview(summariseAllSegments(eInSegs))
 
 def commandSingleSegmentDetail(sInFile,iInSeg):
@@ -87,8 +84,6 @@ def commandSingleSegmentDetail(sInFile,iInSeg):
         raise commandError("NOROOT")
 
     eInSegs = eInRoot.oldRtes()
-    if (eInSegs is None) or (len(eInSegs) == 0): 
-        raise commandError("ILLSEGTYP")
     if (iInSeg>=len(eInSegs)) or (0>iInSeg):
         raise commandError("ILLSEGNUM")
 

@@ -2,15 +2,15 @@
 '''
 Created on Sep 18, 2010
 
-@author: kirus
+@author: r09491
 @purpose: Traverse a gpx file and provide its content
 '''
 
-import sys, os
-import string
+import sys, os, string
 from copy import deepcopy
 import lxml.etree as etree
 
+from .latlon import LatLon, minmaxOf, NULL_BOUNDS
 
 class GPX:
     TAG="gpx"
@@ -277,7 +277,7 @@ class Trk(object):
         """
         return [Trkpt(pt) for pt in self.eSegment.findall(self.tTrkPt)]
 
-    def netrks(self,num):
+    def newTrks(self,num):
         """
         Creates and returns new point elements for the parent TRK segment
         """
@@ -330,11 +330,52 @@ class Gpx(object):
         self.tWpt=self.root.tag.replace(GPX.TAG,WPT.TAG)
         self.tTrk=self.root.tag.replace(GPX.TAG,TRK.TAG)
 
+    def _getNowZulu(self):
+        import datetime
+        return datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+
     def write(self, gpxfile, encoding='utf-8', standalone="no",xml_declaration='True'):
+        """
+        Writes the content of the GPX tree to the given file.
+        """
+        eRtes,eTrks,eWpts=self.oldRtes(),self.oldTrks(),self.oldWpts()
+
+        # Calculate the bounds of the covered area
+        SegMinMax = NULL_BOUNDS
+        for eSeg in eRtes:
+            eSegPts = eSeg.oldPts()
+            if eSegPts is None: continue
+            SegPts=(eSegPt.peek() for eSegPt in eSegPts)
+            SegLatLons=[LatLon(pt[0],pt[1]) for pt in SegPts]
+            SegMinMax=minmaxOf(SegLatLons,SegMinMax)
+        for eSeg in eTrks:
+            eSegPts = eSeg.oldPts()
+            if eSegPts is None: continue
+            SegPts=(eSegPt.peek() for eSegPt in eSegPts)
+            SegLatLons=[LatLon(pt[0],pt[1]) for pt in SegPts]
+            SegMinMax=minmaxOf(SegLatLons,SegMinMax)
+        for eSeg in eWpts:
+            eSegPts = eSeg.oldPts()
+            if eSegPts is None: continue
+            SegPts=(eSegPt.peek() for eSegPt in eSegPts)
+            SegLatLons=[LatLon(pt[0],pt[1]) for pt in SegPts]
+            SegMinMax=minmaxOf(SegLatLons,SegMinMax)
+
+        # Store the bounds
+        eMetadata = self.oldMetadata()
+        eMetadataBounds = eMetadata.oldBounds()
+        eMetadataBounds.poke(SegMinMax)
+
+        # Update the time
+        eMetadataTime = eMetadata.oldTime()
+        eMetadataTime.poke(self._getNowZulu())
+
         self.root.set('creator', 'gpxrte.py - http://www.josef-heid.de')        
         etree.ElementTree(self.root).write(gpxfile, encoding=encoding, \
                standalone=standalone, xml_declaration=xml_declaration, \
                                                pretty_print=True)
+
+        return len(eRtes) + len(eTrks) + len(eWpts) 
 
     def oldMetadata(self):
         """

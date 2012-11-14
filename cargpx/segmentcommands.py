@@ -2,11 +2,9 @@ import os
 
 from .gpx import Gpx, Rte
 from .latlon import LatLon, minmaxOf, NULL_BOUNDS
+from .schemes import gpsbabel
 from .error import commandError
 
-def getNowZulu():
-    import datetime
-    return datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
         
 def getCoords(sCity):
     """
@@ -210,7 +208,7 @@ def commandPullByDistance(sInFile,iSegment,sOutFile,fMeter,):
 
 def commandPush(sInfile,iInSegment,sOutfile):
     """
-    Appends a GPX file to another GPX file with propbly multiple segments
+    Appends a GPX file to another GPX file with propably multiple segments
     """
 
     eInRoot = Gpx(sInfile)
@@ -221,61 +219,47 @@ def commandPush(sInfile,iInSegment,sOutfile):
     if eInSegs is None: 
         raise commandError("NOSEG")
 
-    if os.path.isfile(sOutfile):
-        # The out file exists: append
+    eOutRoot = Gpx(sOutfile) if os.path.isfile(sOutfile) else gpsbabel()
+    if eOutRoot is None:
+        raise commandError("NOROOT")
 
-        eOutRoot = Gpx(sOutfile)
-        if eOutRoot is None:
-            raise commandError("NOROOT")
-
-        if iInSegment is None:
-            # Push everything
-            eOutRoot.cloneRtes(eInSegs)
-        elif (iInSegment >= 0) and (iInSegment < len(eInSegs)):
-            # Push only the selected
-            eOutRoot.cloneRtes([eInSegs[iInSegment]])
-        else:
-            raise commandError("ILLSEGNUM")
-
-        eOutSegs=eOutRoot.oldRtes()
-        if eOutSegs is None: 
-            raise commandError("NOSEG")
-
-        # Calculate the bounds of the covered area
-        outSegMinMax = NULL_BOUNDS
-        for eOutSeg in eOutRoot.oldRtes():
-            eOutSegPts = eOutSeg.oldPts()
-            if eOutSegPts is None: continue
-            outSegPts=(eSegPt.peek() for eSegPt in eOutSegPts)
-            outSegLatLons=[LatLon(pt[0],pt[1]) for pt in outSegPts]
-            outSegMinMax=minmaxOf(outSegLatLons,outSegMinMax)
-
-        # Store the bounds
-        eOutMetadata = eOutRoot.oldMetadata()
-        eOutMetadataBounds = eOutMetadata.oldBounds()
-        eOutMetadataBounds.poke(outSegMinMax)
-
-        # Update the time
-        eOutMetadataTime = eOutMetadata.oldTime()
-        eOutMetadataTime.poke(getNowZulu())
-
-        eOutRoot.write(sOutfile)
-        iSegWritten = len(eOutSegs)
-
+    if iInSegment is None:
+        # Push everything
+        eOutRoot.cloneRtes(eInSegs)
+    elif (iInSegment >= 0) and (iInSegment < len(eInSegs)):
+        # Push only the selected
+        eOutRoot.cloneRtes([eInSegs[iInSegment]])
     else:
-        # The outfile does not exist: copy
+        raise commandError("ILLSEGNUM")
 
-        if iInSegment is None:
-            # Clone the whole in file
-            eInRoot.write(sOutfile)
-            iSegWritten = len(eInSegs)
+    return eOutRoot.write(sOutfile)
 
-        else:
-            # Clone the segement of the in file
-            if (iInSegment < 0) or (iInSegment >= len(eInSegs)):
-                raise commandError("ILLSEGNUM")
-            sOutName,sOutExt=os.path.splitext(sOutfile)
-            writeSegment (eInSegs[iInSegment], sName=sOutName,sExt=sOutExt)
-            iSegWritten = 1
 
-    return iSegWritten
+def commandPurge(sInfile,iInSegment):
+    """
+    Removes the specified segment from the GPX file
+    """
+
+    eInRoot = Gpx(sInfile)
+    if eInRoot is None:
+        raise commandError("NOROOT")
+
+    eInSegs = eInRoot.oldRtes()
+    if eInSegs is None: 
+        raise commandError("NOSEG")
+
+    if (iInSegment < 0) or (iInSegment >= len(eInSegs)):
+        raise commandError("ILLSEGNUM")
+
+    eOutRoot = gpsbabel()
+    if eOutRoot is None:
+        raise commandError("NOROOT")
+
+    if (iInSegment < 0) or (iInSegment >= len(eInSegs)):
+        raise commandError("ILLSEGNUM")
+
+    # The element to be delted is not cloned
+    eOutRoot.cloneRtes(eInSegs[:iInSegment])
+    eOutRoot.cloneRtes(eInSegs[iInSegment+1:])
+    return eOutRoot.write(sInfile)
+
