@@ -17,6 +17,7 @@ from cargpx.segmentcommands import commandPullByCoord
 from cargpx.segmentcommands import commandPullByDistance 
 from cargpx.segmentcommands import commandPush
 from cargpx.segmentcommands import commandPurge
+from cargpx.segmentcommands import commandFlat
 
 from cargpx import gpx as gpx
 
@@ -218,7 +219,7 @@ def  runSegmentPullAtomic(inputs):
 def  runPush(inputs):
     """
     """
-    print ("gpxrte :-, Push RTE atomic")
+    print ("gpxrte :-, Push RTE")
 
     sOutfile=os.path.abspath(inputs.outfile)
 
@@ -237,13 +238,13 @@ def  runPush(inputs):
         print (e)
     else:
         print ("gpxrte :-; %d segments written." % (iNumSegs))
-        print ("gpxrte :-) Push atomic segment ok.")
+        print ("gpxrte :-) Push segment ok.")
 
 
 def  runPurge(inputs):
     """
     """
-    print ("gpxrte :-, Purge RTE atomic")
+    print ("gpxrte :-, Purge RTE")
 
     sInfile=os.path.abspath(inputs.infile)
     if not os.path.isfile(sInfile):
@@ -260,7 +261,35 @@ def  runPurge(inputs):
         print (e)
     else:
         print ("gpxrte :-; %d segments written." % (iNumSegs))
-        print ("gpxrte :-) Purge atomic segment ok.")
+        print ("gpxrte :-) Purge segment ok.")
+
+
+def  runFlat(inputs):
+    """
+    """
+    print ("gpxrte :-, Flat RTE")
+
+    sInfile=os.path.abspath(inputs.infile)
+    if not os.path.isfile(sInfile):
+        print ("gpxrte :-( Illegal GPX input file %s." % (sInfile))
+        return -1
+
+    if (inputs.intype != "rte"):
+        print ("gpxrte :-( For RTE segment only!")
+        return -2
+
+    if inputs.outfile is None:
+        sOutfile = sInfile
+    else:
+        sOutfile=os.path.abspath(inputs.outfile)
+
+    try:
+        iNumSegs=commandFlat(sInfile, sOutfile)
+    except commandError as e:
+        print (e)
+    else:
+        print ("gpxrte :-; %d segments written." % (iNumSegs))
+        print ("gpxrte :-) Flat segment ok.")
 
 
 def main(inputs):
@@ -393,6 +422,17 @@ def parse(commandline):
     purgeParser.add_argument('-f', '--infile', dest='infile', \
                             required=True, help='Any GPX file for input', )
     purgeParser.set_defaults(func=runPurge)
+
+
+    flatParser = subparsers.add_parser('flat', help='Flattens into RTE segment')
+    flatParser.add_argument('-t', '--intype', dest='intype', \
+                            choices=('trk', 'rte', 'wpt'), \
+                            default='rte', help='Segment type to use for input')
+    flatParser.add_argument('-f', '--infile', dest='infile', \
+                            required=True, help='Any GPX file for input', )
+    flatParser.add_argument('-F', '--outfile', dest='outfile', \
+                                help='Any GPX file for output', )
+    flatParser.set_defaults(func=runFlat)
 
 
     try:

@@ -7,10 +7,12 @@ Created on Sep 18, 2010
 '''
 
 import sys, os, string
-from copy import deepcopy
 import lxml.etree as etree
 
+from copy import deepcopy
+
 from .latlon import LatLon, minmaxOf, NULL_BOUNDS
+from .time import getNowZulu
 
 class GPX:
     TAG="gpx"
@@ -330,10 +332,6 @@ class Gpx(object):
         self.tWpt=self.root.tag.replace(GPX.TAG,WPT.TAG)
         self.tTrk=self.root.tag.replace(GPX.TAG,TRK.TAG)
 
-    def _getNowZulu(self):
-        import datetime
-        return datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
-
     def write(self, gpxfile, encoding='utf-8', standalone="no",xml_declaration='True'):
         """
         Writes the content of the GPX tree to the given file.
@@ -368,7 +366,7 @@ class Gpx(object):
 
         # Update the time
         eMetadataTime = eMetadata.oldTime()
-        eMetadataTime.poke(self._getNowZulu())
+        eMetadataTime.poke(getNowZulu())
 
         self.root.set('creator', 'gpxrte.py - http://www.josef-heid.de')        
         etree.ElementTree(self.root).write(gpxfile, encoding=encoding, \

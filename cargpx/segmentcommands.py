@@ -158,7 +158,6 @@ def commandPullByCoord(sInFile,iInSegment,iInType,sOutFile, \
     if iBegin >= iEnd:
         raise commandError("ILLWALKING")
 
-    import os
     pre, ext = os.path.splitext(os.path.basename(sOutFile))
 
     writeSegment(eInSeg,iBegin,iEnd+1,sName=("%s__%04d_%04d__coord.gpx" % \
@@ -191,7 +190,6 @@ def commandPullByDistance(sInFile,iSegment,sOutFile,fMeter,):
     inPts=(ePt.peek() for ePt in eInPts)
     inLatLons=[LatLon(pt[0],pt[1]) for pt in inPts]
 
-    import os
     pre, ext = os.path.splitext(os.path.basename(sOutFile))
     
     iBegin,iCount,fLength = 0, 0, 0.0
@@ -263,3 +261,34 @@ def commandPurge(sInfile,iInSegment):
     eOutRoot.cloneRtes(eInSegs[iInSegment+1:])
     return eOutRoot.write(sInfile)
 
+
+def commandFlat(sInfile,sOutfile):
+    """
+    Flats all RTE segement into one only segement 
+    """
+
+    eInRoot = Gpx(sInfile)
+    if eInRoot is None:
+        raise commandError("NOROOT")
+
+    eInSegs = eInRoot.oldRtes()
+    if eInSegs is None: 
+        raise commandError("NOSEG")
+
+    eOutRoot = gpsbabel()
+    if eOutRoot is None:
+        raise commandError("NOROOT")
+
+    eOutSeg = eInSegs[0]
+    for eInSeg in eInSegs[1:]:
+        eInPts = eInSeg.oldPts()
+        if eInPts is None: continue 
+        eOutSeg.clonePts(eInPts)
+
+    eName = eOutSeg.oldName()
+    if eName is None: 
+        raise Error("NONAME")
+    eName.poke(os.path.splitext(os.path.basename(sOutfile))[0])
+
+    eOutRoot.cloneRtes([eOutSeg])
+    return eOutRoot.write(sOutfile)
