@@ -18,6 +18,7 @@ from cargpx.segmentcommands import commandPullByDistance
 from cargpx.segmentcommands import commandPush
 from cargpx.segmentcommands import commandPurge
 from cargpx.segmentcommands import commandFlat
+from cargpx.segmentcommands import commandSwapIndex
 
 from cargpx import gpx as gpx
 
@@ -32,9 +33,9 @@ def  runShow(inputs):
     The output may be further restricted to a single segment within
     the list by specifying its index.
     """
-    sInfile=os.path.abspath(inputs.infile)
-    if not os.path.isfile(sInfile):
-        print ("gpxrte :-( Illegal GPX input file %s." % (sInfile))
+    sInFile=os.path.abspath(inputs.infile)
+    if not os.path.isfile(sInFile):
+        print ("gpxrte :-( Illegal GPX input file %s." % (sInFile))
         return -1
 
     if (inputs.intype != "rte"):
@@ -96,9 +97,9 @@ def runSegmentPullByCoord(inputs):
     """
     print ("gpxrte :-, Pull RTE by coords")
 
-    sInfile=os.path.abspath(inputs.infile)
-    if not os.path.isfile(sInfile):
-        print ("gpxrte :-( Illegal GPX input file %s." % (sInfile))
+    sInFile=os.path.abspath(inputs.infile)
+    if not os.path.isfile(sInFile):
+        print ("gpxrte :-( Illegal GPX input file %s." % (sInFile))
         return -1
 
     if (inputs.intype != "rte"):
@@ -174,9 +175,9 @@ def runSegmentPullByDistance(inputs):
 
     print ("gpxrte :-, Pull RTE by distance")
 
-    sInfile=os.path.abspath(inputs.infile)
-    if not os.path.isfile(sInfile):
-        print ("gpxrte :-( Illegal GPX input file %s." % (sInfile))
+    sInFile=os.path.abspath(inputs.infile)
+    if not os.path.isfile(sInFile):
+        print ("gpxrte :-( Illegal GPX input file %s." % (sInFile))
         return -1
 
     if (inputs.intype != "rte"):
@@ -184,7 +185,7 @@ def runSegmentPullByDistance(inputs):
         return -2
 
     try:
-        outSegs = commandPullByDistance(sInfile,
+        outSegs = commandPullByDistance(sInFile,
                          inputs.insegment, meter, inputs.outfile)
         print ("gpxrte ++  Created %d RTE files." % (outSegs))
     except commandError as e:
@@ -198,9 +199,9 @@ def  runSegmentPullAtomic(inputs):
     """
     print ("gpxrte :-, Pull RTE atomic")
 
-    sInfile=os.path.abspath(inputs.infile)
-    if not os.path.isfile(sInfile):
-        print ("gpxrte :-( Illegal GPX input file %s." % (sInfile))
+    sInFile=os.path.abspath(inputs.infile)
+    if not os.path.isfile(sInFile):
+        print ("gpxrte :-( Illegal GPX input file %s." % (sInFile))
         return -1
 
     if (inputs.intype != "rte"):
@@ -208,7 +209,7 @@ def  runSegmentPullAtomic(inputs):
         return -2
 
     try:
-        iNumFiles=commandPullAtomic(sInfile, inputs.insegment)
+        iNumFiles=commandPullAtomic(sInFile, inputs.insegment)
     except commandError as e:
         print (e)
     else:
@@ -221,11 +222,11 @@ def  runPush(inputs):
     """
     print ("gpxrte :-, Push RTE")
 
-    sOutfile=os.path.abspath(inputs.outfile)
+    sOutFile=os.path.abspath(inputs.outfile)
 
-    sInfile=os.path.abspath(inputs.infile)
-    if not os.path.isfile(sInfile):
-        print ("gpxrte :-( Illegal GPX input file %s." % (sInfile))
+    sInFile=os.path.abspath(inputs.infile)
+    if not os.path.isfile(sInFile):
+        print ("gpxrte :-( Illegal GPX input file %s." % (sInFile))
         return -1
 
     if (inputs.intype != "rte"):
@@ -233,7 +234,7 @@ def  runPush(inputs):
         return -2
 
     try:
-        iNumSegs=commandPush(sInfile, inputs.insegment, sOutfile)
+        iNumSegs=commandPush(sInFile, inputs.insegment, sOutFile)
     except commandError as e:
         print (e)
     else:
@@ -246,9 +247,9 @@ def  runPurge(inputs):
     """
     print ("gpxrte :-, Purge RTE")
 
-    sInfile=os.path.abspath(inputs.infile)
-    if not os.path.isfile(sInfile):
-        print ("gpxrte :-( Illegal GPX input file %s." % (sInfile))
+    sInFile=os.path.abspath(inputs.infile)
+    if not os.path.isfile(sInFile):
+        print ("gpxrte :-( Illegal GPX input file %s." % (sInFile))
         return -1
 
     if (inputs.intype != "rte"):
@@ -256,7 +257,7 @@ def  runPurge(inputs):
         return -2
 
     try:
-        iNumSegs=commandPurge(sInfile, inputs.insegment)
+        iNumSegs=commandPurge(sInFile, inputs.insegment)
     except commandError as e:
         print (e)
     else:
@@ -269,9 +270,9 @@ def  runFlat(inputs):
     """
     print ("gpxrte :-, Flat RTE")
 
-    sInfile=os.path.abspath(inputs.infile)
-    if not os.path.isfile(sInfile):
-        print ("gpxrte :-( Illegal GPX input file %s." % (sInfile))
+    sInFile=os.path.abspath(inputs.infile)
+    if not os.path.isfile(sInFile):
+        print ("gpxrte :-( Illegal GPX input file %s." % (sInFile))
         return -1
 
     if (inputs.intype != "rte"):
@@ -279,17 +280,45 @@ def  runFlat(inputs):
         return -2
 
     if inputs.outfile is None:
-        sOutfile = sInfile
+        sOutFile = sInFile
     else:
-        sOutfile=os.path.abspath(inputs.outfile)
+        sOutFile=os.path.abspath(inputs.outfile)
 
     try:
-        iNumSegs=commandFlat(sInfile, sOutfile)
+        iNumSegs=commandFlat(sInFile, sOutFile)
     except commandError as e:
         print (e)
     else:
         print ("gpxrte :-; %d segments written." % (iNumSegs))
         print ("gpxrte :-) Flat segment ok.")
+
+
+def  runSwapIndex(inputs):
+    """
+    """
+    print ("gpxrte :-, Swap segment at index")
+
+    sInFile=os.path.abspath(inputs.infile)
+    if not os.path.isfile(sInFile):
+        print ("gpxrte :-( Illegal GPX input file %s." % (sInFile))
+        return -1
+
+    if (inputs.intype != "rte"):
+        print ("gpxrte :-( For RTE segment only!")
+        return -2
+
+    if inputs.outfile is None:
+        sOutFile = sInFile
+    else:
+        sOutFile=os.path.abspath(inputs.outfile)
+
+    try:
+        iNumSegs=commandSwapIndex(sInFile, inputs.insegment, inputs.inpoint, sOutFile)
+    except commandError as e:
+        print (e)
+    else:
+        print ("gpxrte :-; %d segments written." % (iNumSegs))
+        print ("gpxrte :-) Swap segment at index ok.")
 
 
 def main(inputs):
@@ -330,19 +359,19 @@ def parse(commandline):
                             help='RTE segment number to use')
 
 
-    nameParser = subparsers.add_parser('name', help='Sets the name of an RTE segment')
+    nameParser = subparsers.add_parser('name', help='Sets the name of a segment')
     nameParser.add_argument(dest='segmentname', \
-                            help='RTE segment name to set')
+                            help='segment name to set')
     nameParser.add_argument(dest='segmentnumber', nargs='?', \
                             type=int, default=0, \
-                            help='RTE segment number to use')
+                            help='segment number to use')
     nameParser.set_defaults(func=runSegmentName)
     
-    pullParser = subparsers.add_parser('pull', help='Pulls an RTE segment')
+    pullParser = subparsers.add_parser('pull', help='Pulls a segment')
     pullSubparser = pullParser.add_subparsers(help='subcommands pull')
 
     pullSubparserAtomic = pullSubparser.add_parser('atomic', \
-                               help='Pulls complete RTE segments')
+                               help='Pulls complete segments')
     pullSubparserAtomic.add_argument('-s', '--insegment',dest='insegment', \
                             type=int, help='Segment number to use for pull')
     pullSubparserAtomic.add_argument('-t', '--intype', dest='intype', \
@@ -354,7 +383,7 @@ def parse(commandline):
 
 
     pullSubparserByCoord = pullSubparser.add_parser('coord', \
-                              help='Pulls an RTE segment closest to the coords or cities')
+                              help='Pulls a segment closest to the coords or cities')
     pullSubparserByCoord.add_argument('-blat','--beglat', dest='beglat', \
                              type=float, help='New route begin coord (lat)')
     pullSubparserByCoord.add_argument('-blon','--beglon', dest='beglon', \
@@ -385,7 +414,7 @@ def parse(commandline):
 
 
     pullSubparserByDistance = pullSubparser.add_parser('distance', \
-                              help='Pulls RTE segments by distances')
+                              help='Pulls segments by distances')
     pullSubparserByDistance.add_argument('-m','--meter', dest='meter', \
                              type=float, help='Desired route distance (m)')
     pullSubparserByDistance.add_argument('-s', '--insegment',dest='insegment', \
@@ -400,7 +429,7 @@ def parse(commandline):
     pullSubparserByDistance.set_defaults(func=runSegmentPullByDistance)
 
 
-    pushParser = subparsers.add_parser('push', help='Pushes an RTE segment')
+    pushParser = subparsers.add_parser('push', help='Pushes a segment')
     pushParser.add_argument('-s', '--insegment',dest='insegment', \
                              type=int, help='Segment number to use for input')
     pushParser.add_argument('-t', '--intype', dest='intype', \
@@ -413,7 +442,7 @@ def parse(commandline):
     pushParser.set_defaults(func=runPush)
 
 
-    purgeParser = subparsers.add_parser('purge', help='Purges an RTE segment')
+    purgeParser = subparsers.add_parser('purge', help='Purges a segment')
     purgeParser.add_argument('-s', '--insegment',dest='insegment', type=int, default=0, \
                                 required=True, help='Segment number to remove')
     purgeParser.add_argument('-t', '--intype', dest='intype', \
@@ -424,7 +453,7 @@ def parse(commandline):
     purgeParser.set_defaults(func=runPurge)
 
 
-    flatParser = subparsers.add_parser('flat', help='Flattens into RTE segment')
+    flatParser = subparsers.add_parser('flat', help='Flattens into segment')
     flatParser.add_argument('-t', '--intype', dest='intype', \
                             choices=('trk', 'rte', 'wpt'), \
                             default='rte', help='Segment type to use for input')
@@ -433,6 +462,25 @@ def parse(commandline):
     flatParser.add_argument('-F', '--outfile', dest='outfile', \
                                 help='Any GPX file for output', )
     flatParser.set_defaults(func=runFlat)
+
+
+    swapParser = subparsers.add_parser('swap', help='Swaps a round trip segment')
+    swapSubparser = swapParser.add_subparsers(help='subcommands swap')
+
+    swapSubparserIndex = swapSubparser.add_parser('index', \
+                               help='Swaps the round trip segment at point index')
+    swapSubparserIndex.add_argument('-s', '--insegment',dest='insegment',required=True, \
+                            type=int, help='Segment number to use for swap')
+    swapSubparserIndex.add_argument('-p', '--inpoint',dest='inpoint',required=True, \
+                            type=int, help='Point number to swap at')
+    swapSubparserIndex.add_argument('-t', '--intype', dest='intype', \
+                            choices=('trk', 'rte', 'wpt'), \
+                            default='rte', help='Segment type to use for swap')
+    swapSubparserIndex.add_argument('-f', '--infile', dest='infile', required=True, \
+                            help='Any GPX file for input', )
+    swapSubparserIndex.add_argument('-F', '--outfile', dest='outfile', \
+                            help='Any GPX file for output', )
+    swapSubparserIndex.set_defaults(func=runSwapIndex)
 
 
     try:

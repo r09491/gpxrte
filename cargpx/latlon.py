@@ -122,3 +122,9 @@ def minmaxOf(lLatlon,bounds=NULL_BOUNDS):
         if ll.lat>maxlat:maxlat=ll.lat
         if ll.lon>maxlon:maxlon=ll.lon
     return minlat,minlon,maxlat,maxlon
+
+def isRoundTrip(lLatLon):
+    """
+    Returns True if the segment is a round trip (2%)
+    """
+    return lengthOf([lLatLon[0],lLatLon[-1]]) < (lengthOf(lLatLon)/50.0)

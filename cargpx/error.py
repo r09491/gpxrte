@@ -3,7 +3,9 @@ __ERRORS__= { \
         "NOSEGMENTS": "Segments are missing.", \
         "NOPTS": "Points are missing.", \
         "NONAME": "Name is missing.", \
+        "NORTRIP": "No round trip segment .", \
         "ILLSEGNUM": "Segment number is illegal.", \
+        "ILLPNTNUM": "Point number is illegal.", \
         "ILLSEGTYP": "Segment type is illegal.", \
         "ILLWALKING": "Walking direction mismatch.", \
         "ILLBEGCITY": "City not found.", \

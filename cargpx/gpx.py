@@ -213,11 +213,18 @@ class Rte(object):
         """
         return Name(self.eSegment.find(self.tRteName))
 
+    def cloneName(self,eFromName):
+        """
+        Clones the name element of the parent RTE segment.
+        """
+        return self.eSegment.append(deepcopy(eFromName.eName))
+
     def oldPts(self):
         """
         Copies and returns all existing point elements of the parent RTE segment
         """
-        return [Rtept(pt) for pt in self.eSegment.findall(self.tRtePt)]
+        # return [Rtept(pt) for pt in self.eSegment.findall(self.tRtePt)]
+        return self.eSegment.xpath('//rtept') 
 
     def newPts(self,num):
         """
@@ -318,17 +325,22 @@ class Gpx(object):
     """
     """
 
-    def __init__(self,gpxfile="",gpxstring=""):
+    def __init__(self, gpxfile):
         # Create the element root
-        if (gpxfile == "") and (gpxstring != ""):
-            self.root = etree.fromstring(gpxstring)
-        else:
-            self.root = etree.parse(gpxfile).getroot()
+        self.root = etree.parse(gpxfile).getroot()
+
+#        print("-------------------", self.root.nsmap)
+#        print("------------------+", self.root.attrib['{http://www.w3.org/2001/XMLSchema-instance}schemaLocation'])
+
+#        self.root.attrib['{http://www.w3.org/2001/XMLSchema-instance}schemaLocation'] = 'http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd'
+
+#        print("-------------------", self.root.nsmap)
 
         # Generate all required fully qualified tags
         self.tMetadata=self.root.tag.replace(GPX.TAG,METADATA.TAG)
 
         self.tRte=self.root.tag.replace(GPX.TAG,RTE.TAG)
+#        print ( self.tRte)
         self.tWpt=self.root.tag.replace(GPX.TAG,WPT.TAG)
         self.tTrk=self.root.tag.replace(GPX.TAG,TRK.TAG)
 
@@ -391,7 +403,10 @@ class Gpx(object):
         """
         Copies and returns a list of all RTE segment elements.
         """
-        return [Rte(s) for s in self.root.findall(self.tRte)] 
+        #return [Rte(s) for s in self.root.findall(self.tRte)] 
+        rtes = self.root.xpath(self.tRte)
+        print (len(rtes), self.tRte)
+        return rtes
 
     def newRtes(self,num):
         """
@@ -511,8 +526,8 @@ class DaimlerRte(Rte):
 
 
 class Daimler(Gpx):
-    def __init__(self,gpxfile="",gpxstring=""):
-        Gpx.__init__(self, gpxfile, gpxstring)
+    def __init__(self,gpxfile):
+        Gpx.__init__(self)
 
     def oldRtes(self):
         """
@@ -526,12 +541,4 @@ class Daimler(Gpx):
         """
         return [Daimler.Rte(etree.SubElement(self.root, self.tRte)) \
                     for e in range(num)]
-
-class Gpsbabel(Gpx):
-    def __init__(self,gpxfile="",gpxstring=""):
-        Gpx.__init__(self, gpxfile, gpxstring)
-
-class Garmin(Gpx):
-    def __init__(self,gpxfile="",gpxstring=""):
-        Gpx.__init__(self, gpxfile, gpxstring)
 

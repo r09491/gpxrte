@@ -1,7 +1,10 @@
 import os
 
+import lxml.etree as etree
+
 from .gpx import Gpx, Rte
-from .latlon import LatLon, minmaxOf, NULL_BOUNDS
+from .time import getNowZulu
+from .latlon import LatLon, isRoundTrip, minmaxOf, NULL_BOUNDS
 from .schemes import gpsbabel
 from .error import commandError
 
@@ -12,6 +15,31 @@ def getCoords(sCity):
     from geopy import geocoders
     geoNames=geocoders.GeoNames()
     return geoNames.geocode(sCity,exactly_one=False)
+
+
+def writeGpxFile(eGpx,lLatLon,sOutFile):
+    """
+    """
+
+    if eGpx is None:
+        raise commandError("NOROOT")
+    NS = '//{'+eGpx.nsmap[None]+'}%s'
+
+    eBounds= etree.ETXPath(NS % 'bounds')(eGpx)
+    if eBounds:
+        minlat,minlon,maxlat,maxlon = \
+            minmaxOf(lLatLon,NULL_BOUNDS)
+        eBounds[0].set('minlat',str(minlat))
+        eBounds[0].set('minlon',str(minlon))
+        eBounds[0].set('maxlat',str(maxlat))
+        eBounds[0].set('maxlon',str(maxlon))
+
+    eTime= etree.ETXPath(NS % 'time')(eGpx)
+    if eTime: 
+        eTime[0].text=getNowZulu()
+
+    eGpx.set('creator', 'gpxrte.py - http://www.josef-heid.de')        
+    etree.ElementTree(eGpx).write(sOutFile,encoding='utf-8',xml_declaration='True')
 
 
 def modifyGpxFile(sFileName, iSegmentNumber, applyModifier, args):
@@ -85,12 +113,12 @@ def writeSegment(eInSeg, iBeg=None, iEnd=None, sName=None, sExt=".gpx"):
     eOutRoot.write(sName + sExt)
     
 
-def commandPullAtomic(sInfile, iSegment):
+def commandPullAtomic(sInFile, iSegment):
     """
-    Returns GPX file with the complete RTE segment
+    Returns GPX file with the complete segment
     """
 
-    eInRoot = Gpx(sInfile)
+    eInRoot = Gpx(sInFile)
     if eInRoot is None:
         raise commandError("NOROOT")
 
@@ -113,8 +141,8 @@ def commandPullAtomic(sInfile, iSegment):
 def commandPullByCoord(sInFile,iInSegment,iInType,sOutFile, \
                           fBeginLat,fBeginLon,fEndLat,fEndLon):
     """
-    Returns a GPX file with a single RTE segment with the
-    start point and end point closest to the input requests.
+    Returns a GPX file with a single segment with the start
+    point and end point closest to the input requests.
     """
 
     eInRoot = Gpx(sInFile)
@@ -167,7 +195,7 @@ def commandPullByCoord(sInFile,iInSegment,iInType,sOutFile, \
 
 def commandPullByDistance(sInFile,iSegment,sOutFile,fMeter,):
     """
-    Splits a long GPX route into several RTEs segments not exceeding the
+    Splits a long GPX route into several segments not exceeding the
     requested distance. The segments may be stored in individual files
     or a single file.
     """
@@ -204,12 +232,12 @@ def commandPullByDistance(sInFile,iSegment,sOutFile,fMeter,):
     return iCount
 
 
-def commandPush(sInfile,iInSegment,sOutfile):
+def commandPush(sInFile,iInSegment,sOutFile):
     """
     Appends a GPX file to another GPX file with propably multiple segments
     """
 
-    eInRoot = Gpx(sInfile)
+    eInRoot = Gpx(sInFile)
     if eInRoot is None:
         raise commandError("NOROOT")
 
@@ -217,7 +245,7 @@ def commandPush(sInfile,iInSegment,sOutfile):
     if eInSegs is None: 
         raise commandError("NOSEG")
 
-    eOutRoot = Gpx(sOutfile) if os.path.isfile(sOutfile) else gpsbabel()
+    eOutRoot = Gpx(sOutFile) if os.path.isfile(sOutFile) else gpsbabel()
     if eOutRoot is None:
         raise commandError("NOROOT")
 
@@ -230,15 +258,15 @@ def commandPush(sInfile,iInSegment,sOutfile):
     else:
         raise commandError("ILLSEGNUM")
 
-    return eOutRoot.write(sOutfile)
+    return eOutRoot.write(sOutFile)
 
 
-def commandPurge(sInfile,iInSegment):
+def commandPurge(sInFile,iInSegment):
     """
     Removes the specified segment from the GPX file
     """
 
-    eInRoot = Gpx(sInfile)
+    eInRoot = Gpx(sInFile)
     if eInRoot is None:
         raise commandError("NOROOT")
 
@@ -259,15 +287,15 @@ def commandPurge(sInfile,iInSegment):
     # The element to be delted is not cloned
     eOutRoot.cloneRtes(eInSegs[:iInSegment])
     eOutRoot.cloneRtes(eInSegs[iInSegment+1:])
-    return eOutRoot.write(sInfile)
+    return eOutRoot.write(sInFile)
 
 
-def commandFlat(sInfile,sOutfile):
+def commandFlat(sInFile,sOutFile):
     """
     Flats all RTE segement into one only segement 
     """
 
-    eInRoot = Gpx(sInfile)
+    eInRoot = Gpx(sInFile)
     if eInRoot is None:
         raise commandError("NOROOT")
 
@@ -288,7 +316,39 @@ def commandFlat(sInfile,sOutfile):
     eName = eOutSeg.oldName()
     if eName is None: 
         raise Error("NONAME")
-    eName.poke(os.path.splitext(os.path.basename(sOutfile))[0])
+    eName.poke(os.path.splitext(os.path.basename(sOutFile))[0])
 
     eOutRoot.cloneRtes([eOutSeg])
-    return eOutRoot.write(sOutfile)
+    return eOutRoot.write(sOutFile)
+
+
+def commandSwapIndex(sInFile,iInSeg,iInPoint,sOutFile):
+    """
+    Swaps the segement at the index 
+    """
+
+    eGpx = etree.parse(sInFile).getroot()
+    if eGpx is None:
+        raise commandError("NOROOT")
+    NS = '//{'+eGpx.nsmap[None]+'}%s'
+
+    eRte= etree.ETXPath(NS % 'rte')(eGpx)
+    if eRte is None: 
+        raise commandError("NOSEG")
+    if (iInSeg < 0) or (iInSeg >= len(eRte)):
+        raise commandError("ILLSEGNUM")
+
+    eRtept = etree.ETXPath(NS % 'rtept')(eRte[iInSeg])
+    if (iInPoint < 0) or (iInPoint >= len(eRtept)):
+        raise commandError("ILLPNTNUM")
+
+    latLons=[LatLon(float(ePt.get('lat')),float(ePt.get('lon'))) for ePt in eRtept]
+    if not isRoundTrip(latLons):
+        raise commandError("NORTRIP")
+
+    # Move to tail until the required point is the firrst
+    for i in range(iInPoint): eRte[0].append(eRtept[i])
+
+    writeGpxFile(eGpx,latLons,sOutFile)
+    
+    return len(eRte)
