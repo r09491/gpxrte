@@ -209,11 +209,11 @@ def  runSegmentPullAtomic(inputs):
         return -2
 
     try:
-        iNumFiles=commandPullAtomic(sInFile, inputs.insegment)
+        iNumFiles=commandPullAtomic(sInFile, inputs.insegment,inputs.outfile)
     except commandError as e:
         print (e)
     else:
-        print ("gpxrte :-; %d files written." % (iNumFiles))
+        print ("gpxrte :-; %d file(s) written." % (iNumFiles))
         print ("gpxrte :-) Pull atomic segment ok.")
 
 
@@ -296,7 +296,7 @@ def  runFlat(inputs):
 def  runSwapIndex(inputs):
     """
     """
-    print ("gpxrte :-, Swa RTE at index")
+    print ("gpxrte :-, Swap RTE at index")
 
     sInFile=os.path.abspath(inputs.infile)
     if not os.path.isfile(sInFile):
@@ -379,6 +379,8 @@ def parse(commandline):
                             default='rte', help='Segment type to use for pull')
     pullSubparserAtomic.add_argument('-f', '--infile', dest='infile', required=True, \
                             help='Any GPX file for pull', )
+    pullSubparserAtomic.add_argument('-F', '--outfile', dest='outfile', \
+                            help='Any GPX file for output', )
     pullSubparserAtomic.set_defaults(func=runSegmentPullAtomic)
 
 

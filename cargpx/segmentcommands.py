@@ -117,29 +117,39 @@ def writeSegment(eInSeg, iBeg=None, iEnd=None, sName=None, sExt=".gpx"):
     eOutRoot.write(sName + sExt)
     
 
-def commandPullAtomic(sInFile, iSegment):
+def commandPullAtomic(sInFile, iInSeg, sOutFile):
     """
     Returns GPX file with the complete segment
     """
 
-    eInRoot = Gpx(sInFile)
-    if eInRoot is None:
+    eGpx = etree.parse(sInFile).getroot()
+    if eGpx is None:
         raise commandError("NOROOT")
+    NS = '{'+eGpx.nsmap[None]+'}%s'
 
-    eInSegs = eInRoot.oldRtes()
-    if eInSegs is None: 
+    eRtes= eGpx.findall(NS % 'rte')
+    if eRtes is None: 
         raise commandError("NOSEG")
+    if (iInSeg < 0) or (iInSeg >= len(eRtes)):
+        raise commandError("ILLSEGNUM")
 
-    if iSegment is None:
-        for eSeg in eInSegs: writeSegment (eSeg, sExt="__atomic.gpx")
-        iSegWritten = len(eInSegs)
-    else:
-        if (iSegment < 0) or (iSegment >= len(eInSegs)):
-            raise commandError("ILLSEGNUM")
-        writeSegment (eInSegs[iSegment], sExt="__atomic.gpx")
-        iSegWritten = 1
+    # Keep the pull segemnt only
+    for eRte in eRtes[:iInSeg]: eGpx.remove(eRte)
+    for eRte in eRtes[iInSeg+1:]: eGpx.remove(eRte)
 
-    return iSegWritten
+    eRtePts = eRtes[iInSeg].findall(NS % 'rtept')
+    lLatLons=[getLatLon(eRtePt) for eRtePt in eRtePts]
+
+    if sOutFile is None:
+        eRteName = eRtes[iInSeg].find(NS % 'name')
+        if eRteName is None:
+            sOutFile = "%s_%03d_atomic.gpx" % (os.path.splitext(sInFile)[0], iInSeg)
+        else:
+            eRteName = eRtes[iInSeg].find(NS % 'name')
+            sOutFile = "%s.gpx" % (eRteName.text.strip())
+
+    writeGpxFile(eGpx,lLatLons,sOutFile)
+    return len(eGpx.findall(NS % 'rte'))
 
 
 def commandPullByCoord(sInFile,iInSegment,iInType,sOutFile, \
@@ -303,22 +313,21 @@ def commandFlat(sInFile,sOutFile):
     eGpx = etree.parse(sInFile).getroot()
     if eGpx is None:
         raise commandError("NOROOT")
-    NS = '//{'+eGpx.nsmap[None]+'}%s'
+    NS = '{'+eGpx.nsmap[None]+'}%s'
 
-    eRtes= etree.ETXPath(NS % 'rte')(eGpx)
+    eRtes= eGpx.findall(NS % 'rte')
     if eRtes is None: 
         raise commandError("NOSEG")
 
-    eRtepts = etree.ETXPath(NS % 'rtept')(eGpx)
-    if eRtepts is None: 
-        raise commandError("NOPTS")
+    for eRte in eRtes[1:]:
+        eRtePts = eRte.findall(NS % 'rtept')
+        if eRtePts is not None: eRtes[0].extend(eRtePts)
+        eGpx.remove(eRte)
 
-    eRtes[0].clear()
-    eRtes[0].extend(eRtepts)
+    eRteName = eRtes[0].find(NS % 'name')
+    eRteName.text = os.path.splitext(os.path.basename(sOutFile))[0]
 
-    for eRte in eRtes[1:]:eGpx.remove(eRte)
-
-    lLatLons=[getLatLon(ePt) for ePt in eRtepts]
+    lLatLons=[getLatLon(ePt) for ePt in eRtePts]
     writeGpxFile(eGpx,lLatLons,sOutFile)
 
     return len(etree.ETXPath(NS % 'rte')(eGpx))
@@ -333,24 +342,26 @@ def commandSwapIndex(sInFile,iInSeg,iInPoint,sOutFile):
     eGpx = etree.parse(sInFile).getroot()
     if eGpx is None:
         raise commandError("NOROOT")
-    NS = '//{'+eGpx.nsmap[None]+'}%s'
+    NS = '{'+eGpx.nsmap[None]+'}%s'
 
-    eRtes= etree.ETXPath(NS % 'rte')(eGpx)
+    eRtes= eGpx.findall(NS % 'rte')
     if eRtes is None: 
         raise commandError("NOSEG")
     if (iInSeg < 0) or (iInSeg >= len(eRtes)):
         raise commandError("ILLSEGNUM")
 
-    eRtepts = etree.ETXPath(NS % 'rtept')(eRtes[iInSeg])
-    if (iInPoint < 0) or (iInPoint >= len(eRtepts)):
+    eRtePts = eRtes[iInSeg].findall(NS % 'rtept')
+    if eRtePts is None: 
+        raise commandError("NOPTS")
+    if (iInPoint < 0) or (iInPoint >= len(eRtePts)):
         raise commandError("ILLPNTNUM")
 
-    lLatLons=[getLatLon(ePt) for ePt in eRtepts]
+    lLatLons=[getLatLon(ePt) for ePt in eRtePts]
     if not isRoundTrip(lLatLons):
         raise commandError("NORTRIP")
 
     # Move to tail until the required point is the firrst
-    for i in range(iInPoint): eRtes[0].append(eRtepts[i])
+    for i in range(iInPoint): eRtes[0].append(eRtePts[i])
 
     writeGpxFile(eGpx,lLatLons,sOutFile)
     return len(eRtes)

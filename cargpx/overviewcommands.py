@@ -1,28 +1,45 @@
-from .gpx import Gpx
+import lxml.etree as etree
+
 from .latlon import LatLon, lengthOf, eleProfileOf
 from .error import commandError
 
-def summarizeSingleSegment(eInSeg):
+def getLatLon(ePt):
+    return LatLon(float(ePt.get('lat')),float(ePt.get('lon')))
+
+
+def summarizeSingleSegment(eRte):
     """
     Traverses all points in a route segments, stores the found
     points and calculates the total distance, climb, and descend 
     to the summary list 
     """
 
-    name = eInSeg.oldName().peek()
+    NS = '{'+eRte.nsmap[None]+'}%s'
 
-    eSrcPts = eInSeg.oldPts()
+    eRteName = eRte.find(NS % 'name')
+    if eRteName is None: 
+        raise commandError("NONAME")
+    rteName = eRteName.text
 
-    srcPts=(ePt.peek() for ePt in eSrcPts)
-    srcLatLons=(LatLon(pt[0],pt[1]) for pt in srcPts)
-    srcLength=lengthOf(list(srcLatLons))
+    eRtePts = eRte.findall(NS % 'rtept')
+    if eRtePts is None: 
+        raise commandError("NOPTS")
+    lLatLons=[getLatLon(eRtePt) for eRtePt in eRtePts]
 
-    eSrcEles=(ePt.oldEle() for ePt in eSrcPts)
-    srcEles=(eEle.peek() for eEle in eSrcEles if eEle is not None)
-    srcClimb,srcDescend=eleProfileOf(list(srcEles))
+    eRtePtNames = (eRtePt.find(NS % 'name') for eRtePt in eRtePts)
+    if eRtePtNames is None: 
+        raise commandError("NONAME")
+    lNames =(eName.text for eName in eRtePtNames)
 
-    return name, len(list(eSrcPts)), srcLength, srcClimb, srcDescend
+    eRtePtEles = (eRtePt.find(NS % 'ele') for eRtePt in eRtePts)
+    lEles =(float(eEle.text) for eEle in eRtePtEles)
+
+    srcLength=lengthOf(list(lLatLons))
+    srcClimb,srcDescend=eleProfileOf(list(lEles))
+
+    return rteName, len(list(lLatLons)), srcLength, srcClimb, srcDescend
  
+
 def summariseAllSegments(eInSegs):
     """
     Traverse all routes in a gpx file and append each result
@@ -43,12 +60,12 @@ def showAllSegmentsOverview(summary):
     totalClimb=0.0
     totalDescend=0.0
     for (name, numpts, length, climb, descend) in summary:            
-        print("## "+ str(totalSegments) + \
-            ",Name:" + name + \
+        print("## "+ "%3d" % totalSegments + \
             ",Points:" + str(int(numpts)) + \
             ",Distance(m):" + str(int(length)) + \
             ",Climb(m):" + str(int(climb)) + \
-            ",Descend(m):"+ str(int(descend)))
+            ",Descend(m):"+ str(int(descend)) + \
+            ",Name:" + name)
                                 
         totalSegments+=1
         totalNumpts+=numpts
@@ -63,56 +80,67 @@ def showAllSegmentsOverview(summary):
 
     return 0
 
+
 def commandAllSegmentsOverview(sInFile):
     """
     Traverse the provide GPX segments and outputs a summary 
     """
-    eInRoot = Gpx(sInFile)
-    if eInRoot is None:
+    eGpx = etree.parse(sInFile).getroot()
+    if eGpx is None:
         raise commandError("NOROOT")
+    NS = '//{'+eGpx.nsmap[None]+'}%s'
 
-    eInSegs = eInRoot.oldRtes()
-    return showAllSegmentsOverview(summariseAllSegments(eInSegs))
+    eRtes= etree.ETXPath(NS % 'rte')(eGpx)
+    if eRtes is None: 
+        raise commandError("NOSEG")
+    return showAllSegmentsOverview(summariseAllSegments(eRtes))
+
 
 def commandSingleSegmentDetail(sInFile,iInSeg):
     """
     Traverse a single GPX segment and output a detailed report 
     """
 
-    eInRoot = Gpx(sInFile)
-    if eInRoot is None:
+    eGpx = etree.parse(sInFile).getroot()
+    if eGpx is None:
         raise commandError("NOROOT")
+    NS = '{'+eGpx.nsmap[None]+'}%s'
 
-    eInSegs = eInRoot.oldRtes()
-    if (iInSeg>=len(eInSegs)) or (0>iInSeg):
+    eRtes= eGpx.findall(NS % 'rte')
+    if eRtes is None: 
+        raise commandError("NOSEG")
+    if (iInSeg < 0) or (iInSeg >= len(eRtes)):
         raise commandError("ILLSEGNUM")
 
-    eInSeg=eInSegs[iInSeg]
+    eRte=eRtes[iInSeg]
 
-    name = eInSeg.oldName().peek()
+    eRteName = eRte.find(NS % 'name')
+    if eRteName is None: 
+        raise commandError("NONAME")
+    rteName = eRteName.text
 
-    eInPts = eInSeg.oldPts()
-    if (eInPts is None) or (len(eInPts) == 0): 
+    eRtePts = eRte.findall(NS % 'rtept')
+    if eRtePts is None: 
         raise commandError("NOPTS")
+    lLatLons=[getLatLon(eRtePt) for eRtePt in eRtePts]
 
-    inPts=(ePt.peek() for ePt in eInPts)
-    inLatLons=[LatLon(pt[0],pt[1]) for pt in inPts]
-
-    eInNames = (ePt.oldName() for ePt in eInPts)
-    inNames =(eName.peek() for eName in eInNames)
+    eRtePtNames = (eRtePt.find(NS % 'name') for eRtePt in eRtePts)
+    if eRtePtNames is None: 
+        raise commandError("NONAME")
+    lNames =(eName.text for eName in eRtePtNames)
 
     print("++ Showing overview for segment %s, with %d points." % \
-        (name,len(list(inLatLons))))
+        (rteName,len(list(lLatLons))))
 
-    s,e=inLatLons[0],inLatLons[-1]
+    s,e=lLatLons[0],lLatLons[-1]
         
     o=s
     km=0.0
-    for (n,p) in zip(inNames,inLatLons):
+    for (n,p) in zip(lNames,lLatLons):
         km=km+o.rangeTo(p)/1000.0
 
         print("## %3d,km:%07.3f,fromPrev:%03.0f/%05.3f,FromStart:%03.0f/%06.3f,ToEnd:%03.0f/%06.3f,Name:%s" % \
-            (inLatLons.index(p), km, \
+            (lLatLons.index(p), km, \
                  o.bearingTo(p),o.rangeTo(p)/1000.0, \
                  s.bearingTo(p),s.rangeTo(p)/1000.0, \
                  p.bearingTo(e),p.rangeTo(e)/1000.0,n))
