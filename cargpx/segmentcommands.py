@@ -119,7 +119,7 @@ def writeSegment(eInSeg, iBeg=None, iEnd=None, sName=None, sExt=".gpx"):
 
 def commandPullAtomic(sInFile, iInSeg, sOutFile):
     """
-    Returns GPX file with the complete segment
+    Returns GPX file with the selected RTE segment
     """
 
     eGpx = etree.parse(sInFile).getroot()
@@ -207,7 +207,7 @@ def commandPullByCoord(sInFile,iInSegment,iInType,sOutFile, \
     return 1
 
 
-def commandPullByDistance(sInFile,iSegment,sOutFile,fMeter,):
+def commandPullByDistance(sInFile,iSegment,sOutFile,fMeter):
     """
     Splits a long GPX route into several segments not exceeding the
     requested distance. The segments may be stored in individual files
@@ -246,62 +246,63 @@ def commandPullByDistance(sInFile,iSegment,sOutFile,fMeter,):
     return iCount
 
 
-def commandPush(sInFile,iInSegment,sOutFile):
+def commandPush(sInFile,iInSeg,sOutFile):
     """
     Appends a GPX file to another GPX file with propably multiple segments
     """
 
-    eInRoot = Gpx(sInFile)
-    if eInRoot is None:
+    eInGpx = etree.parse(sInFile).getroot()
+    if eInGpx is None:
         raise commandError("NOROOT")
+    NS = '{'+eInGpx.nsmap[None]+'}%s'
 
-    eInSegs = eInRoot.oldRtes()
-    if eInSegs is None: 
+    eInRtes= eInGpx.findall(NS % 'rte')
+    if eInRtes is None: 
         raise commandError("NOSEG")
 
-    eOutRoot = Gpx(sOutFile) if os.path.isfile(sOutFile) else gpsbabel()
-    if eOutRoot is None:
+    eOutGpx = etree.parse(sOutFile).getroot()
+    if eOutGpx is None:
         raise commandError("NOROOT")
-
-    if iInSegment is None:
-        # Push everything
-        eOutRoot.cloneRtes(eInSegs)
-    elif (iInSegment >= 0) and (iInSegment < len(eInSegs)):
-        # Push only the selected
-        eOutRoot.cloneRtes([eInSegs[iInSegment]])
-    else:
+    NS = '{'+eOutGpx.nsmap[None]+'}%s'
+    
+    if iInSeg is None:
+        eOutGpx.extend(eInRtes)
+    elif (iInSeg < 0) or (iInSeg >= len(eInRtes)):
         raise commandError("ILLSEGNUM")
+    else:
+        eOutGpx.extend(eInRtes[iInSeg])
 
-    return eOutRoot.write(sOutFile)
+    eOutRtePts= eOutGpx.findall(NS % 'rte' + '/' + NS % 'rtept' )
+    lLatLons=[getLatLon(eRtePt) for eRtePt in eOutRtePts]
+
+    writeGpxFile(eOutGpx,lLatLons,sOutFile)
+    return len(eOutGpx.findall(NS % 'rte'))
 
 
-def commandPurge(sInFile,iInSegment):
+def commandPurge(sInFile,iInSeg):
     """
     Removes the specified segment from the GPX file
     """
 
-    eInRoot = Gpx(sInFile)
-    if eInRoot is None:
+    eGpx = etree.parse(sInFile).getroot()
+    if eGpx is None:
         raise commandError("NOROOT")
+    NS = '{'+eGpx.nsmap[None]+'}%s'
 
-    eInSegs = eInRoot.oldRtes()
-    if eInSegs is None: 
+    eRtes= eGpx.findall(NS % 'rte')
+    if eRtes is None: 
         raise commandError("NOSEG")
-
-    if (iInSegment < 0) or (iInSegment >= len(eInSegs)):
+    if (iInSeg < 0) or (iInSeg >= len(eRtes)):
         raise commandError("ILLSEGNUM")
 
-    eOutRoot = gpsbabel()
-    if eOutRoot is None:
-        raise commandError("NOROOT")
+    # Remove the complete segment
+    eGpx.remove(eRtes[iInSeg])
 
-    if (iInSegment < 0) or (iInSegment >= len(eInSegs)):
-        raise commandError("ILLSEGNUM")
+    eRtePts= eGpx.findall(NS % 'rte' + '/' + NS % 'rtept' )
+    lLatLons=[getLatLon(eRtePt) for eRtePt in eRtePts]
 
-    # The element to be delted is not cloned
-    eOutRoot.cloneRtes(eInSegs[:iInSegment])
-    eOutRoot.cloneRtes(eInSegs[iInSegment+1:])
-    return eOutRoot.write(sInFile)
+    writeGpxFile(eGpx,lLatLons,sInFile)
+    return len(eGpx.findall(NS % 'rte'))
 
 
 def commandFlat(sInFile,sOutFile):
@@ -365,3 +366,37 @@ def commandSwapIndex(sInFile,iInSeg,iInPoint,sOutFile):
 
     writeGpxFile(eGpx,lLatLons,sOutFile)
     return len(eRtes)
+
+
+def commandSwapCoord(sInFile,iInSeg,Coord,sOutFile):
+    """
+    Swaps the segement at the point which is closest to the given
+    coordinate 
+    """
+    return 0
+
+def commandSwapRoute(sInFile,iInSeg,sRouteFile,sOutFile):
+    """
+    Swaps the segement at the point which is closest to the given
+    route 
+    """
+    return 0
+
+def commandInvert(sInFile,iInSeg,iInPoint,sOutFile):
+    """
+    Inverts the route
+    """
+    return 0
+
+
+def commandFindClosestCoord(sInFile,iInSeg,coord):
+    """
+    Returns the index of the closest RTE point to the given coord
+    """
+    return 0
+
+def commandFindClosestRoute(sInFile,iInSeg,sRouteFile):
+    """
+    Returns the index of the closest RTE point to the given route
+    """
+    return 0
