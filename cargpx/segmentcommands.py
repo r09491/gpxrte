@@ -17,6 +17,10 @@ def getCoords(sCity):
     return geoNames.geocode(sCity,exactly_one=False)
 
 
+def getLatLon(ePt):
+    return LatLon(float(ePt.get('lat')),float(ePt.get('lon')))
+
+
 def writeGpxFile(eGpx,lLatLon,sOutFile):
     """
     """
@@ -38,8 +42,8 @@ def writeGpxFile(eGpx,lLatLon,sOutFile):
     if eTime: 
         eTime[0].text=getNowZulu()
 
-    eGpx.set('creator', 'gpxrte.py - http://www.josef-heid.de')        
-    etree.ElementTree(eGpx).write(sOutFile,encoding='utf-8',xml_declaration='True')
+    eGpx.set('creator', 'gpxrte - http://www.josef-heid.de')        
+    etree.ElementTree(eGpx).write(sOutFile,encoding='utf-8',xml_declaration=True,pretty_print=True)
 
 
 def modifyGpxFile(sFileName, iSegmentNumber, applyModifier, args):
@@ -292,39 +296,8 @@ def commandPurge(sInFile,iInSegment):
 
 def commandFlat(sInFile,sOutFile):
     """
-    Flats all RTE segement into one only segement 
-    """
-
-    eInRoot = Gpx(sInFile)
-    if eInRoot is None:
-        raise commandError("NOROOT")
-
-    eInSegs = eInRoot.oldRtes()
-    if eInSegs is None: 
-        raise commandError("NOSEG")
-
-    eOutRoot = gpsbabel()
-    if eOutRoot is None:
-        raise commandError("NOROOT")
-
-    eOutSeg = eInSegs[0]
-    for eInSeg in eInSegs[1:]:
-        eInPts = eInSeg.oldPts()
-        if eInPts is None: continue 
-        eOutSeg.clonePts(eInPts)
-
-    eName = eOutSeg.oldName()
-    if eName is None: 
-        raise Error("NONAME")
-    eName.poke(os.path.splitext(os.path.basename(sOutFile))[0])
-
-    eOutRoot.cloneRtes([eOutSeg])
-    return eOutRoot.write(sOutFile)
-
-
-def commandSwapIndex(sInFile,iInSeg,iInPoint,sOutFile):
-    """
-    Swaps the segement at the index 
+    Flattens all RTE segements into singel segment by appending
+    all points to the RTE segment
     """
 
     eGpx = etree.parse(sInFile).getroot()
@@ -332,23 +305,52 @@ def commandSwapIndex(sInFile,iInSeg,iInPoint,sOutFile):
         raise commandError("NOROOT")
     NS = '//{'+eGpx.nsmap[None]+'}%s'
 
-    eRte= etree.ETXPath(NS % 'rte')(eGpx)
-    if eRte is None: 
+    eRtes= etree.ETXPath(NS % 'rte')(eGpx)
+    if eRtes is None: 
         raise commandError("NOSEG")
-    if (iInSeg < 0) or (iInSeg >= len(eRte)):
+
+    eRtepts = etree.ETXPath(NS % 'rtept')(eGpx)
+    if eRtepts is None: 
+        raise commandError("NOPTS")
+
+    eRtes[0].clear()
+    eRtes[0].extend(eRtepts)
+
+    for eRte in eRtes[1:]:eGpx.remove(eRte)
+
+    lLatLons=[getLatLon(ePt) for ePt in eRtepts]
+    writeGpxFile(eGpx,lLatLons,sOutFile)
+
+    return len(etree.ETXPath(NS % 'rte')(eGpx))
+
+
+def commandSwapIndex(sInFile,iInSeg,iInPoint,sOutFile):
+    """
+    Swaps the segement at the indexed point. The point at 
+    the index becomes the beginning of the RTE segment.
+    """
+
+    eGpx = etree.parse(sInFile).getroot()
+    if eGpx is None:
+        raise commandError("NOROOT")
+    NS = '//{'+eGpx.nsmap[None]+'}%s'
+
+    eRtes= etree.ETXPath(NS % 'rte')(eGpx)
+    if eRtes is None: 
+        raise commandError("NOSEG")
+    if (iInSeg < 0) or (iInSeg >= len(eRtes)):
         raise commandError("ILLSEGNUM")
 
-    eRtept = etree.ETXPath(NS % 'rtept')(eRte[iInSeg])
-    if (iInPoint < 0) or (iInPoint >= len(eRtept)):
+    eRtepts = etree.ETXPath(NS % 'rtept')(eRtes[iInSeg])
+    if (iInPoint < 0) or (iInPoint >= len(eRtepts)):
         raise commandError("ILLPNTNUM")
 
-    latLons=[LatLon(float(ePt.get('lat')),float(ePt.get('lon'))) for ePt in eRtept]
-    if not isRoundTrip(latLons):
+    lLatLons=[getLatLon(ePt) for ePt in eRtepts]
+    if not isRoundTrip(lLatLons):
         raise commandError("NORTRIP")
 
     # Move to tail until the required point is the firrst
-    for i in range(iInPoint): eRte[0].append(eRtept[i])
+    for i in range(iInPoint): eRtes[0].append(eRtepts[i])
 
-    writeGpxFile(eGpx,latLons,sOutFile)
-    
-    return len(eRte)
+    writeGpxFile(eGpx,lLatLons,sOutFile)
+    return len(eRtes)

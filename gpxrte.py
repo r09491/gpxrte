@@ -268,7 +268,7 @@ def  runPurge(inputs):
 def  runFlat(inputs):
     """
     """
-    print ("gpxrte :-, Flat RTE")
+    print ("gpxrte :-, Flat RTEs")
 
     sInFile=os.path.abspath(inputs.infile)
     if not os.path.isfile(sInFile):
@@ -289,14 +289,14 @@ def  runFlat(inputs):
     except commandError as e:
         print (e)
     else:
-        print ("gpxrte :-; %d segments written." % (iNumSegs))
-        print ("gpxrte :-) Flat segment ok.")
+        print ("gpxrte :-; %d segment(s) written." % (iNumSegs))
+        print ("gpxrte :-) Flat RTEs ok.")
 
 
 def  runSwapIndex(inputs):
     """
     """
-    print ("gpxrte :-, Swap segment at index")
+    print ("gpxrte :-, Swa RTE at index")
 
     sInFile=os.path.abspath(inputs.infile)
     if not os.path.isfile(sInFile):
@@ -317,8 +317,8 @@ def  runSwapIndex(inputs):
     except commandError as e:
         print (e)
     else:
-        print ("gpxrte :-; %d segments written." % (iNumSegs))
-        print ("gpxrte :-) Swap segment at index ok.")
+        print ("gpxrte :-; %d segment(s) written." % (iNumSegs))
+        print ("gpxrte :-) Swap RTE at index ok.")
 
 
 def main(inputs):
@@ -460,7 +460,7 @@ def parse(commandline):
     flatParser.add_argument('-f', '--infile', dest='infile', \
                             required=True, help='Any GPX file for input', )
     flatParser.add_argument('-F', '--outfile', dest='outfile', \
-                                help='Any GPX file for output', )
+                            required=True, help='Any GPX file for output', )
     flatParser.set_defaults(func=runFlat)
 
 
