@@ -19,6 +19,8 @@ from cargpx.segmentcommands import commandPush
 from cargpx.segmentcommands import commandPurge
 from cargpx.segmentcommands import commandFlat
 from cargpx.segmentcommands import commandReverse
+from cargpx.segmentcommands import commandHead
+from cargpx.segmentcommands import commandTail
 from cargpx.segmentcommands import commandSwap
 from cargpx.segmentcommands import commandFindClosestCoord
 from cargpx.segmentcommands import commandFindClosestRoute
@@ -325,6 +327,62 @@ def  runReverse(inputs):
         print ("gpxrte :-) Reverse RTEs ok.")
 
 
+def  runHead(inputs):
+    """
+    """
+    print ("gpxrte :-, Head RTEs")
+
+    sInFile=os.path.abspath(inputs.infile)
+    if not os.path.isfile(sInFile):
+        print ("gpxrte :-( Illegal GPX input file %s." % (sInFile))
+        return -1
+
+    if (inputs.intype != "rte"):
+        print ("gpxrte :-( For RTE segment only!")
+        return -2
+
+    if inputs.outfile is None:
+        sOutFile = sInFile
+    else:
+        sOutFile=os.path.abspath(inputs.outfile)
+
+    try:
+        iNumSegs=commandHead(sInFile,inputs.insegment,inputs.inpoint,sOutFile)
+    except commandError as e:
+        print (e)
+    else:
+        print ("gpxrte :-; %d segment(s) written." % (iNumSegs))
+        print ("gpxrte :-) Head RTEs ok.")
+
+
+def  runTail(inputs):
+    """
+    """
+    print ("gpxrte :-, Tail RTEs")
+
+    sInFile=os.path.abspath(inputs.infile)
+    if not os.path.isfile(sInFile):
+        print ("gpxrte :-( Illegal GPX input file %s." % (sInFile))
+        return -1
+
+    if (inputs.intype != "rte"):
+        print ("gpxrte :-( For RTE segment only!")
+        return -2
+
+    if inputs.outfile is None:
+        sOutFile = sInFile
+    else:
+        sOutFile=os.path.abspath(inputs.outfile)
+
+    try:
+        iNumSegs=commandTail(sInFile,inputs.insegment,inputs.inpoint,sOutFile)
+    except commandError as e:
+        print (e)
+    else:
+        print ("gpxrte :-; %d segment(s) written." % (iNumSegs))
+        print ("gpxrte :-) Tail RTEs ok.")
+
+
 def  runSwap(inputs):
     """
     """
@@ -540,7 +598,7 @@ def parse(commandline):
 
 
     pushParser = subparsers.add_parser('push', help='Pushes a segment')
-    pushParser.add_argument('-s', '--insegment',dest='insegment', \
+    pushParser.add_argument('-s', '--insegment',dest='insegment', required=True, \
                              type=int, help='Segment number to use for input')
     pushParser.add_argument('-t', '--intype', dest='intype', \
                             choices=('trk', 'rte', 'wpt'), \
@@ -585,6 +643,36 @@ def parse(commandline):
     reverseParser.add_argument('-F', '--outfile', dest='outfile', \
                             required=True, help='Any GPX file for output', )
     reverseParser.set_defaults(func=runReverse)
+
+
+    headParser = subparsers.add_parser('head', help='Heads the segment')
+    headParser.add_argument('-s', '--insegment',dest='insegment',required=True, \
+                                   type=int, help='Segment number to use for head')
+    headParser.add_argument('-p', '--inpoint',dest='inpoint',required=True, \
+                            type=int, help='Point number of fist not inclueded')
+    headParser.add_argument('-t', '--intype', dest='intype', \
+                            choices=('trk', 'rte', 'wpt'), \
+                            default='rte', help='Segment type to use for input')
+    headParser.add_argument('-f', '--infile', dest='infile', \
+                            required=True, help='Any GPX file for input', )
+    headParser.add_argument('-F', '--outfile', dest='outfile', \
+                            required=True, help='Any GPX file for output', )
+    headParser.set_defaults(func=runHead)
+
+
+    tailParser = subparsers.add_parser('tail', help='Tails the segment')
+    tailParser.add_argument('-s', '--insegment',dest='insegment',required=True, \
+                                   type=int, help='Segment number to use for tail')
+    tailParser.add_argument('-p', '--inpoint',dest='inpoint',required=True, \
+                            type=int, help='Point number of first tail point')
+    tailParser.add_argument('-t', '--intype', dest='intype', \
+                            choices=('trk', 'rte', 'wpt'), \
+                            default='rte', help='Segment type to use for input')
+    tailParser.add_argument('-f', '--infile', dest='infile', \
+                            required=True, help='Any GPX file for input', )
+    tailParser.add_argument('-F', '--outfile', dest='outfile', \
+                            required=True, help='Any GPX file for output', )
+    tailParser.set_defaults(func=runTail)
 
 
     swapParser = subparsers.add_parser('swap', help='Swaps a round trip segment')

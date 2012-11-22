@@ -335,7 +335,6 @@ def commandFlat(sInFile,sOutFile):
 
     return len(etree.ETXPath(NS % 'rte')(eGpx))
 
-
 def commandReverse(sInFile,iInSeg,sOutFile):
     """
     Inverts the route
@@ -356,6 +355,62 @@ def commandReverse(sInFile,iInSeg,sOutFile):
     for eRtePt in reversed(eRtePts):eGpx.append(eRtePt)
 
     writeGpxFile(eGpx,None,sOutFile)
+    return len(eRtes)
+
+
+def commandHead(sInFile,iInSeg,iInPoint,sOutFile):
+    """
+    Returns the head points of the segment not including the point indexed
+    by iInPoint
+    """
+
+    eGpx = etree.parse(sInFile).getroot()
+    if eGpx is None:
+        raise commandError("NOROOT")
+    NS = '{'+eGpx.nsmap[None]+'}%s'
+
+    eRtes= eGpx.findall(NS % 'rte')
+    if eRtes is None: 
+        raise commandError("NOSEG")
+    if (iInSeg < 0) or (iInSeg >= len(eRtes)):
+        raise commandError("ILLSEGNUM")
+    eRte=eRtes[iInSeg]
+
+    eRtePts=eRte.findall(NS % 'rtept' )
+    if (iInPoint < 0) or (iInPoint >= len(eRtePts)):
+        raise commandError("ILLPNTNUM")
+    for eRtePt in eRtePts[iInPoint:]:eRte.remove(eRtePt) 
+
+    lLatLons=[getLatLon(ePt) for ePt in eRtePts[:iInPoint]]
+    writeGpxFile(eGpx,lLatLons,sOutFile)
+    return len(eRtes)
+
+
+def commandTail(sInFile,iInSeg,iInPoint,sOutFile):
+    """
+    Returns the tail points of the segment including the point indexed
+    by iInPoint
+    """
+
+    eGpx = etree.parse(sInFile).getroot()
+    if eGpx is None:
+        raise commandError("NOROOT")
+    NS = '{'+eGpx.nsmap[None]+'}%s'
+
+    eRtes= eGpx.findall(NS % 'rte')
+    if eRtes is None: 
+        raise commandError("NOSEG")
+    if (iInSeg < 0) or (iInSeg >= len(eRtes)):
+        raise commandError("ILLSEGNUM")
+    eRte=eRtes[iInSeg]
+
+    eRtePts=eRte.findall(NS % 'rtept' )
+    if (iInPoint < 0) or (iInPoint >= len(eRtePts)):
+        raise commandError("ILLPNTNUM")
+    for eRtePt in eRtePts[:iInPoint]:eRte.remove(eRtePt) 
+
+    lLatLons=[getLatLon(ePt) for ePt in eRtePts[iInPoint:]]
+    writeGpxFile(eGpx,lLatLons,sOutFile)
     return len(eRtes)
 
 
