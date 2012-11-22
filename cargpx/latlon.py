@@ -128,3 +128,20 @@ def isRoundTrip(lLatLon):
     Returns True if the segment is a round trip (2%)
     """
     return lengthOf([lLatLon[0],lLatLon[-1]]) < (lengthOf(lLatLon)/50.0)
+
+def closestToPoint(lLatLon,pLatLon):
+    """
+    Returns the closest point index with bearing and range in meters
+    """
+    lRng = [pLatLon.rangeTo(ll) for ll in lLatLon]
+    iP = lRng.index(min(lRng))
+    return iP,pLatLon.bearingTo(lLatLon[iP]),pLatLon.rangeTo(lLatLon[iP])
+
+def closestToRoute(lLatLon1,lLatLon2):
+    """
+    Returns the closest point indices with bearing and range in meters
+    """
+    lClosest = [closestToPoint(lLatLon1,ll) for ll in lLatLon2]
+    lRng = [p[2] for p in lClosest]
+    iP = lRng.index(min(lRng))
+    return iP,lClosest[iP][0],lClosest[iP][1],lClosest[iP][2]

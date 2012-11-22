@@ -13,12 +13,17 @@ from cargpx.daimlercommands import convertToRoute
 from cargpx.segmentcommands import getCoords
 from cargpx.segmentcommands import commandName  
 from cargpx.segmentcommands import commandPullAtomic
-from cargpx.segmentcommands import commandPullByCoord 
-from cargpx.segmentcommands import commandPullByDistance 
+from cargpx.segmentcommands import commandPullCoord 
+from cargpx.segmentcommands import commandPullDistance 
 from cargpx.segmentcommands import commandPush
 from cargpx.segmentcommands import commandPurge
 from cargpx.segmentcommands import commandFlat
 from cargpx.segmentcommands import commandSwapIndex
+from cargpx.segmentcommands import commandSwapCoord
+from cargpx.segmentcommands import commandSwapRoute
+from cargpx.segmentcommands import commandInvert
+from cargpx.segmentcommands import commandFindClosestCoord
+from cargpx.segmentcommands import commandFindClosestRoute
 
 from cargpx import gpx as gpx
 
@@ -92,7 +97,7 @@ def  runSegmentName(inputs):
         print ("gpxrte :-) Name completed ok.")
 
 
-def runSegmentPullByCoord(inputs):
+def runSegmentPullCoord(inputs):
     """
     """
     print ("gpxrte :-, Pull RTE by coords")
@@ -157,7 +162,7 @@ def runSegmentPullByCoord(inputs):
             return -11
 
     try:
-        outfile = commandPullByCoord( \
+        outfile = commandPullCoord( \
             inputs.infile,inputs.insegment,inputs.intype,
             inputs.outfile,beglat,beglon,endlat,endlon)
         print ("gpxrte ++  Output to %s" % (outfile))
@@ -167,7 +172,7 @@ def runSegmentPullByCoord(inputs):
         print ("gpxrte :-) Pull by coord ok.")
 
 
-def runSegmentPullByDistance(inputs):
+def runSegmentPullDistance(inputs):
     """
     """
     meter = inputs.meter if inputs.meter is not None else 22500.0
@@ -185,7 +190,7 @@ def runSegmentPullByDistance(inputs):
         return -2
 
     try:
-        outSegs = commandPullByDistance(sInFile,
+        outSegs = commandPulldistance(sInFile,
                          inputs.insegment, meter, inputs.outfile)
         print ("gpxrte ++  Created %d RTE files." % (outSegs))
     except commandError as e:
@@ -321,6 +326,82 @@ def  runSwapIndex(inputs):
         print ("gpxrte :-) Swap RTE at index ok.")
 
 
+def runFindClosestCoord(inputs):
+    """
+    """
+    print ("gpxrte :-, Find closest RTE point to coords")
+
+    sInFile=os.path.abspath(inputs.infile)
+    if not os.path.isfile(sInFile):
+        print ("gpxrte :-( Illegal GPX input file %s." % (sInFile))
+        return -1
+
+    if (inputs.intype != "rte"):
+        print ("gpxrte :-( For RTE segment only!")
+        return -2
+
+    if not ((inputs.lat is None) and  (inputs.lon is None)):
+        if inputs.city is not None:
+            print ("gpxrte :-( Ambiguous coordinates")
+            return -4
+
+        lat, lon = inputs.lat, inputs.lon
+    
+    elif inputs.city is not None:
+        lCoords= getCoords(inputs.city)
+        if lCoords is None:
+            print( "gpxrte :-( No in city coordinates available." )
+            return -6
+        if inputs.cityindex is None:
+            print ("gpxrte :-| in city is ambiguous.")
+            for i, (place,(lat,lon)) in enumerate(lCoords):
+                print("%d: %s (%.4f, %.4f)" % (i, place, lat, lon))
+            return -7
+        if inputs.cityindex in range(len(lCoords)):
+            place, (lat,lon) = lCoords[inputs.cityindex]
+            print(" From: %s (%.4f, %.4f)" % (place, lat, lon))
+        else:
+            print( "gpxrte :-( Illegal city index." )
+            return -8
+    else:
+        print( "gpxrte :-( No coordinates" )
+        return -3
+ 
+    try:
+        index,rLat,rLon,brg,rng = commandFindClosestCoord( \
+            inputs.infile,inputs.insegment,lat,lon)
+    except commandError as e:
+        print (e)
+    else:
+        print ("gpxrte :-) #%d(%.2f:%.2f)>%03.0f/%03.0f" % \
+                   (index,rLat,rLon,brg,rng))
+
+
+def runFindClosestRoute(inputs):
+    """
+    """
+    print ("gpxrte :-, Find closest RTE point to routes")
+
+    sInFile1=os.path.abspath(inputs.infile1)
+    if not os.path.isfile(sInFile1):
+        print ("gpxrte :-( Illegal GPX input file %s." % (sInFile1))
+        return -1
+
+    sInFile2=os.path.abspath(inputs.infile2)
+    if not os.path.isfile(sInFile2):
+        print ("gpxrte :-( Illegal GPX input file %s." % (sInFile2))
+        return -2
+
+    try:
+        i1,i2,lat1,lon1,lat2,lon2,brg,rng = commandFindClosestRoute( \
+            sInFile1,inputs.insegment1,sInFile2,inputs.insegment2)
+    except commandError as e:
+        print (e)
+    else:
+        print ("gpxrte :-) #%d(%.2f:%.2f)#%d(%.2f:%.2f)>%03.0f/%03.0f" % \
+                   (i1,lat1,lon1,i2,lat2,lon2,brg,rng))
+
+
 def main(inputs):
     """
     """
@@ -384,51 +465,51 @@ def parse(commandline):
     pullSubparserAtomic.set_defaults(func=runSegmentPullAtomic)
 
 
-    pullSubparserByCoord = pullSubparser.add_parser('coord', \
+    pullSubparserCoord = pullSubparser.add_parser('coord', \
                               help='Pulls a segment closest to the coords or cities')
-    pullSubparserByCoord.add_argument('-blat','--beglat', dest='beglat', \
+    pullSubparserCoord.add_argument('-blat','--beglat', dest='beglat', \
                              type=float, help='New route begin coord (lat)')
-    pullSubparserByCoord.add_argument('-blon','--beglon', dest='beglon', \
+    pullSubparserCoord.add_argument('-blon','--beglon', dest='beglon', \
                             type=float, help='New route begin coord (lon)')
-    pullSubparserByCoord.add_argument('-elat','--endlat',dest='endlat',  \
+    pullSubparserCoord.add_argument('-elat','--endlat',dest='endlat',  \
                             type=float, help='New route end coord (lat)')
-    pullSubparserByCoord.add_argument('-elon','--endlon',dest='endlon',  \
+    pullSubparserCoord.add_argument('-elon','--endlon',dest='endlon',  \
                             type=float, help='New route end coord (lon)')
-    pullSubparserByCoord.add_argument('-bc','--begcity',dest='begcity',  \
+    pullSubparserCoord.add_argument('-bc','--begcity',dest='begcity',  \
                             help='New route begin city name')
-    pullSubparserByCoord.add_argument('-bi','--begcityindex',dest='begcityindex',  \
+    pullSubparserCoord.add_argument('-bi','--begcityindex',dest='begcityindex',  \
                             type=int, help='New route begin city index')
-    pullSubparserByCoord.add_argument('-ec','--endcity',dest='endcity',  \
+    pullSubparserCoord.add_argument('-ec','--endcity',dest='endcity',  \
                             help='New route end city')
-    pullSubparserByCoord.add_argument('-ei','--endcityindex',dest='endcityindex',  \
+    pullSubparserCoord.add_argument('-ei','--endcityindex',dest='endcityindex',  \
                             type=int, help='New route end city index')
 
-    pullSubparserByCoord.add_argument('-s', '--insegment',dest='insegment', \
+    pullSubparserCoord.add_argument('-s', '--insegment',dest='insegment', \
                             type=int, default=0, help='Segment number to use for input')
-    pullSubparserByCoord.add_argument('-t', '--intype', dest='intype', \
+    pullSubparserCoord.add_argument('-t', '--intype', dest='intype', \
                             choices=('trk', 'rte', 'wpt'), \
                             default='rte', help='Segment type to use for input')
-    pullSubparserByCoord.add_argument('-f', '--infile', dest='infile', required=True, \
+    pullSubparserCoord.add_argument('-f', '--infile', dest='infile', required=True, \
                             help='Any GPX file for input', )
-    pullSubparserByCoord.add_argument('-F', '--outfile', dest='outfile', \
+    pullSubparserCoord.add_argument('-F', '--outfile', dest='outfile', \
                             required=True, help='Any GPX file for output', )
-    pullSubparserByCoord.set_defaults(func=runSegmentPullByCoord)
+    pullSubparserCoord.set_defaults(func=runSegmentPullCoord)
 
 
-    pullSubparserByDistance = pullSubparser.add_parser('distance', \
+    pullSubparserDistance = pullSubparser.add_parser('distance', \
                               help='Pulls segments by distances')
-    pullSubparserByDistance.add_argument('-m','--meter', dest='meter', \
+    pullSubparserDistance.add_argument('-m','--meter', dest='meter', \
                              type=float, help='Desired route distance (m)')
-    pullSubparserByDistance.add_argument('-s', '--insegment',dest='insegment', \
+    pullSubparserDistance.add_argument('-s', '--insegment',dest='insegment', \
                             type=int, default=0, help='Segment number to use for input')
-    pullSubparserByDistance.add_argument('-t', '--intype', dest='intype', \
+    pullSubparserDistance.add_argument('-t', '--intype', dest='intype', \
                             choices=('trk', 'rte', 'wpt'), \
                             default='rte', help='Segment type to use for input')
-    pullSubparserByDistance.add_argument('-f', '--infile', dest='infile', \
+    pullSubparserDistance.add_argument('-f', '--infile', dest='infile', \
                             required=True, help='Any GPX file for input', )
-    pullSubparserByDistance.add_argument('-F', '--outfile', dest='outfile', \
+    pullSubparserDistance.add_argument('-F', '--outfile', dest='outfile', \
                             required=True, help='Any GPX file for output', )
-    pullSubparserByDistance.set_defaults(func=runSegmentPullByDistance)
+    pullSubparserDistance.set_defaults(func=runSegmentPullDistance)
 
 
     pushParser = subparsers.add_parser('push', help='Pushes a segment')
@@ -484,6 +565,40 @@ def parse(commandline):
                             help='Any GPX file for output', )
     swapSubparserIndex.set_defaults(func=runSwapIndex)
 
+
+    findClosestParser = subparsers.add_parser('find', help='Finds a segment')
+    findClosestSubparser = findClosestParser.add_subparsers(help='subcommands find')
+
+    findClosestSubparserCoord = findClosestSubparser.add_parser('coord', \
+                              help='Finds a route point closest to the coords or cities')
+    findClosestSubparserCoord.add_argument('-lat','--lat', dest='lat', \
+                             type=float, help='Coord (lat)')
+    findClosestSubparserCoord.add_argument('-lon','--lon', dest='lon', \
+                            type=float, help='Coord (lon)')
+    findClosestSubparserCoord.add_argument('-c','--city',dest='city',  \
+                            help='City name')
+    findClosestSubparserCoord.add_argument('-i','--cityindex',dest='cityindex',  \
+                            type=int, help='City index')
+    findClosestSubparserCoord.add_argument('-s','--insegment',dest='insegment', \
+                   type=int, required=True, help='Segment number to use for find')
+    findClosestSubparserCoord.add_argument('-t', '--intype', dest='intype', \
+                            choices=('trk', 'rte', 'wpt'), \
+                            default='rte', help='Segment type to use for find')
+    findClosestSubparserCoord.add_argument('-f', '--infile', dest='infile', \
+                            required=True, help='Any GPX file for find', )
+    findClosestSubparserCoord.set_defaults(func=runFindClosestCoord)
+
+    findClosestSubparserRoute = findClosestSubparser.add_parser('route', \
+                               help='Finds the points closest from two routes')
+    findClosestSubparserRoute.add_argument('-s1', '--insegment1',dest='insegment1', \
+                          type=int,required=True,help='Segment number to use for find')
+    findClosestSubparserRoute.add_argument('-s2', '--insegment2',dest='insegment2', \
+                          type=int,required=True,help='Segment number to use for find')
+    findClosestSubparserRoute.add_argument('-f1', '--infile1', dest='infile1', \
+                            required=True, help='Any GPX file for find', )
+    findClosestSubparserRoute.add_argument('-f2', '--infile2', dest='infile2', \
+                            required=True, help='Any GPX file for find', )
+    findClosestSubparserRoute.set_defaults(func=runFindClosestRoute)
 
     try:
         inputs=parser.parse_args(commandline)

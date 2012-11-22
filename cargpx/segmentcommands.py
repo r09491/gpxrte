@@ -2,11 +2,11 @@ import os
 
 import lxml.etree as etree
 
-from .gpx import Gpx, Rte
-from .time import getNowZulu
-from .latlon import LatLon, isRoundTrip, minmaxOf, NULL_BOUNDS
-from .schemes import gpsbabel
+from .latlon import *
 from .error import commandError
+from .time import getNowZulu
+from .gpx import Gpx, Rte
+from .schemes import gpsbabel
 
         
 def getCoords(sCity):
@@ -43,7 +43,8 @@ def writeGpxFile(eGpx,lLatLon,sOutFile):
         eTime[0].text=getNowZulu()
 
     eGpx.set('creator', 'gpxrte - http://www.josef-heid.de')        
-    etree.ElementTree(eGpx).write(sOutFile,encoding='utf-8',xml_declaration=True,pretty_print=True)
+    etree.ElementTree(eGpx).write(sOutFile,encoding='utf-8', \
+                                      xml_declaration=True,pretty_print=True)
 
 
 def modifyGpxFile(sFileName, iSegmentNumber, applyModifier, args):
@@ -152,8 +153,8 @@ def commandPullAtomic(sInFile, iInSeg, sOutFile):
     return len(eGpx.findall(NS % 'rte'))
 
 
-def commandPullByCoord(sInFile,iInSegment,iInType,sOutFile, \
-                          fBeginLat,fBeginLon,fEndLat,fEndLon):
+def commandPullCoord(sInFile,iInSegment,iInType,sOutFile, \
+                         fBeginLat,fBeginLon,fEndLat,fEndLon):
     """
     Returns a GPX file with a single segment with the start
     point and end point closest to the input requests.
@@ -207,7 +208,7 @@ def commandPullByCoord(sInFile,iInSegment,iInType,sOutFile, \
     return 1
 
 
-def commandPullByDistance(sInFile,iSegment,sOutFile,fMeter):
+def commandPullDistance(sInFile,iSegment,sOutFile,fMeter):
     """
     Splits a long GPX route into several segments not exceeding the
     requested distance. The segments may be stored in individual files
@@ -360,7 +361,7 @@ def commandSwapIndex(sInFile,iInSeg,iInPoint,sOutFile):
     lLatLons=[getLatLon(ePt) for ePt in eRtePts]
     if not isRoundTrip(lLatLons):
         raise commandError("NORTRIP")
-
+ 
     # Move to tail until the required point is the firrst
     for i in range(iInPoint): eRtes[0].append(eRtePts[i])
 
@@ -389,14 +390,65 @@ def commandInvert(sInFile,iInSeg,iInPoint,sOutFile):
     return 0
 
 
-def commandFindClosestCoord(sInFile,iInSeg,coord):
+def commandFindClosestCoord(sInFile,iInSeg,lat,lon):
     """
     Returns the index of the closest RTE point to the given coord
     """
-    return 0
+    eGpx = etree.parse(sInFile).getroot()
+    if eGpx is None:
+        raise commandError("NOROOT")
+    NS = '{'+eGpx.nsmap[None]+'}%s'
 
-def commandFindClosestRoute(sInFile,iInSeg,sRouteFile):
+    eRtes= eGpx.findall(NS % 'rte')
+    if eRtes is None: 
+        raise commandError("NOSEG")
+    if (iInSeg < 0) or (iInSeg >= len(eRtes)):
+        raise commandError("ILLSEGNUM")
+
+    eRtePts = eRtes[iInSeg].findall(NS % 'rtept')
+    if eRtePts is None: 
+        raise commandError("NOPTS")
+
+    lLatLons=[getLatLon(ePt) for ePt in eRtePts]
+    index,brg,rng = closestToPoint(lLatLons,LatLon(lat,lon))
+    return index,lLatLons[index].lat,lLatLons[index].lon,brg,rng
+
+def commandFindClosestRoute(sInFile1,iInSeg1,sInFile2,iInSeg2):
     """
     Returns the index of the closest RTE point to the given route
     """
-    return 0
+    eInGpx = etree.parse(sInFile1).getroot()
+    if eInGpx is None:
+        raise commandError("NOROOT")
+    NS = '{'+eInGpx.nsmap[None]+'}%s'
+
+    eInRtes1= eInGpx.findall(NS % 'rte')
+    if eInRtes1 is None: 
+        raise commandError("NOSEG")
+    if (iInSeg1 < 0) or (iInSeg1 >= len(eInRtes1)):
+        raise commandError("ILLSEGNUM")
+
+    eInRtePts1 = eInRtes1[iInSeg1].findall(NS % 'rtept')
+    if eInRtePts1 is None: 
+        raise commandError("NOPTS")
+    lInLatLons1=[getLatLon(ePt) for ePt in eInRtePts1]
+
+    eInGpx2 = etree.parse(sInFile2).getroot()
+    if eInGpx2 is None:
+        raise commandError("NOROOT")
+    NS = '{'+eInGpx2.nsmap[None]+'}%s'
+
+    eInRtes2= eInGpx2.findall(NS % 'rte')
+    if eInRtes2 is None: 
+        raise commandError("NOSEG")
+    if (iInSeg2 < 0) or (iInSeg2 >= len(eInRtes2)):
+        raise commandError("ILLSEGNUM")
+
+    eInRtePts2 = eInRtes2[iInSeg2].findall(NS % 'rtept')
+    if eInRtePts2 is None: 
+        raise commandError("NOPTS")
+    lInLatLons2=[getLatLon(ePt) for ePt in eInRtePts2]
+
+    iP1,iP2,brg,rng = closestToRoute(lInLatLons1,lInLatLons2)
+    return iP1,iP2,lInLatLons1[iP1].lat,lInLatLons1[iP1].lon, \
+        lInLatLons2[iP2].lat,lInLatLons2[iP1].lon, brg,rng 
