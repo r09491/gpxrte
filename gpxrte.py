@@ -18,14 +18,13 @@ from cargpx.segmentcommands import commandPullDistance
 from cargpx.segmentcommands import commandPush
 from cargpx.segmentcommands import commandPurge
 from cargpx.segmentcommands import commandFlat
-from cargpx.segmentcommands import commandSwapIndex
-from cargpx.segmentcommands import commandSwapCoord
-from cargpx.segmentcommands import commandSwapRoute
-from cargpx.segmentcommands import commandInvert
+from cargpx.segmentcommands import commandReverse
+from cargpx.segmentcommands import commandSwap
 from cargpx.segmentcommands import commandFindClosestCoord
 from cargpx.segmentcommands import commandFindClosestRoute
 
 from cargpx import gpx as gpx
+
 
 def  runShow(inputs):
     """
@@ -298,7 +297,35 @@ def  runFlat(inputs):
         print ("gpxrte :-) Flat RTEs ok.")
 
 
-def  runSwapIndex(inputs):
+def  runReverse(inputs):
+    """
+    """
+    print ("gpxrte :-, Reverse RTEs")
+
+    sInFile=os.path.abspath(inputs.infile)
+    if not os.path.isfile(sInFile):
+        print ("gpxrte :-( Illegal GPX input file %s." % (sInFile))
+        return -1
+
+    if (inputs.intype != "rte"):
+        print ("gpxrte :-( For RTE segment only!")
+        return -2
+
+    if inputs.outfile is None:
+        sOutFile = sInFile
+    else:
+        sOutFile=os.path.abspath(inputs.outfile)
+
+    try:
+        iNumSegs=commandReverse(sInFile,inputs.insegment,sOutFile)
+    except commandError as e:
+        print (e)
+    else:
+        print ("gpxrte :-; %d segment(s) written." % (iNumSegs))
+        print ("gpxrte :-) Reverse RTEs ok.")
+
+
+def  runSwap(inputs):
     """
     """
     print ("gpxrte :-, Swap RTE at index")
@@ -318,7 +345,7 @@ def  runSwapIndex(inputs):
         sOutFile=os.path.abspath(inputs.outfile)
 
     try:
-        iNumSegs=commandSwapIndex(sInFile, inputs.insegment, inputs.inpoint, sOutFile)
+        iNumSegs=commandSwap(sInFile, inputs.insegment, inputs.inpoint, sOutFile)
     except commandError as e:
         print (e)
     else:
@@ -543,27 +570,36 @@ def parse(commandline):
     flatParser.add_argument('-f', '--infile', dest='infile', \
                             required=True, help='Any GPX file for input', )
     flatParser.add_argument('-F', '--outfile', dest='outfile', \
-                            required=True, help='Any GPX file for output', )
+                            required=True,help='Any GPX file for output', )
     flatParser.set_defaults(func=runFlat)
 
 
-    swapParser = subparsers.add_parser('swap', help='Swaps a round trip segment')
-    swapSubparser = swapParser.add_subparsers(help='subcommands swap')
+    reverseParser = subparsers.add_parser('reverse', help='Reverses the segment')
+    reverseParser.add_argument('-s', '--insegment',dest='insegment',required=True, \
+                                   type=int, help='Segment number to use for reverse')
+    reverseParser.add_argument('-t', '--intype', dest='intype', \
+                            choices=('trk', 'rte', 'wpt'), \
+                            default='rte', help='Segment type to use for input')
+    reverseParser.add_argument('-f', '--infile', dest='infile', \
+                            required=True, help='Any GPX file for input', )
+    reverseParser.add_argument('-F', '--outfile', dest='outfile', \
+                            required=True, help='Any GPX file for output', )
+    reverseParser.set_defaults(func=runReverse)
 
-    swapSubparserIndex = swapSubparser.add_parser('index', \
-                               help='Swaps the round trip segment at point index')
-    swapSubparserIndex.add_argument('-s', '--insegment',dest='insegment',required=True, \
+
+    swapParser = subparsers.add_parser('swap', help='Swaps a round trip segment')
+    swapParser.add_argument('-s', '--insegment',dest='insegment',required=True, \
                             type=int, help='Segment number to use for swap')
-    swapSubparserIndex.add_argument('-p', '--inpoint',dest='inpoint',required=True, \
+    swapParser.add_argument('-p', '--inpoint',dest='inpoint',required=True, \
                             type=int, help='Point number to swap at')
-    swapSubparserIndex.add_argument('-t', '--intype', dest='intype', \
+    swapParser.add_argument('-t', '--intype', dest='intype', \
                             choices=('trk', 'rte', 'wpt'), \
                             default='rte', help='Segment type to use for swap')
-    swapSubparserIndex.add_argument('-f', '--infile', dest='infile', required=True, \
+    swapParser.add_argument('-f', '--infile', dest='infile', required=True, \
                             help='Any GPX file for input', )
-    swapSubparserIndex.add_argument('-F', '--outfile', dest='outfile', \
+    swapParser.add_argument('-F', '--outfile', dest='outfile', \
                             help='Any GPX file for output', )
-    swapSubparserIndex.set_defaults(func=runSwapIndex)
+    swapParser.set_defaults(func=runSwap)
 
 
     findClosestParser = subparsers.add_parser('find', help='Finds a segment')

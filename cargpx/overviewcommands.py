@@ -146,7 +146,7 @@ def commandSingleSegmentDetail(sInFile,iInSeg):
                  p.bearingTo(e),p.rangeTo(e)/1000.0,n))
         o=p
 
-    if s.rangeTo(e) < 20.0*km:
+    if s.rangeTo(e)/1000.0 < 0.05*km:
         print("++ Segment is rountrip.")
     else:
         print("++ Segment is oneway.")

@@ -127,7 +127,7 @@ def isRoundTrip(lLatLon):
     """
     Returns True if the segment is a round trip (2%)
     """
-    return lengthOf([lLatLon[0],lLatLon[-1]]) < (lengthOf(lLatLon)/50.0)
+    return lengthOf([lLatLon[0],lLatLon[-1]]) < (0.05*lengthOf(lLatLon))
 
 def closestToPoint(lLatLon,pLatLon):
     """

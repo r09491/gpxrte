@@ -29,14 +29,15 @@ def writeGpxFile(eGpx,lLatLon,sOutFile):
         raise commandError("NOROOT")
     NS = '//{'+eGpx.nsmap[None]+'}%s'
 
-    eBounds= etree.ETXPath(NS % 'bounds')(eGpx)
-    if eBounds:
-        minlat,minlon,maxlat,maxlon = \
-            minmaxOf(lLatLon,NULL_BOUNDS)
-        eBounds[0].set('minlat',str(minlat))
-        eBounds[0].set('minlon',str(minlon))
-        eBounds[0].set('maxlat',str(maxlat))
-        eBounds[0].set('maxlon',str(maxlon))
+    if not lLatLon is None:
+        eBounds= etree.ETXPath(NS % 'bounds')(eGpx)
+        if eBounds:
+            minlat,minlon,maxlat,maxlon = \
+                minmaxOf(lLatLon,NULL_BOUNDS)
+            eBounds[0].set('minlat',str(minlat))
+            eBounds[0].set('minlon',str(minlon))
+            eBounds[0].set('maxlat',str(maxlat))
+            eBounds[0].set('maxlon',str(maxlon))
 
     eTime= etree.ETXPath(NS % 'time')(eGpx)
     if eTime: 
@@ -335,7 +336,30 @@ def commandFlat(sInFile,sOutFile):
     return len(etree.ETXPath(NS % 'rte')(eGpx))
 
 
-def commandSwapIndex(sInFile,iInSeg,iInPoint,sOutFile):
+def commandReverse(sInFile,iInSeg,sOutFile):
+    """
+    Inverts the route
+    """
+
+    eGpx = etree.parse(sInFile).getroot()
+    if eGpx is None:
+        raise commandError("NOROOT")
+    NS = '{'+eGpx.nsmap[None]+'}%s'
+
+    eRtes= eGpx.findall(NS % 'rte')
+    if eRtes is None: 
+        raise commandError("NOSEG")
+    if (iInSeg < 0) or (iInSeg >= len(eRtes)):
+        raise commandError("ILLSEGNUM")
+
+    eRtePts=eRtes[iInSeg].findall(NS % 'rtept' )
+    for eRtePt in reversed(eRtePts):eGpx.append(eRtePt)
+
+    writeGpxFile(eGpx,None,sOutFile)
+    return len(eRtes)
+
+
+def commandSwap(sInFile,iInSeg,iInPoint,sOutFile):
     """
     Swaps the segement at the indexed point. The point at 
     the index becomes the beginning of the RTE segment.
@@ -369,27 +393,6 @@ def commandSwapIndex(sInFile,iInSeg,iInPoint,sOutFile):
     return len(eRtes)
 
 
-def commandSwapCoord(sInFile,iInSeg,Coord,sOutFile):
-    """
-    Swaps the segement at the point which is closest to the given
-    coordinate 
-    """
-    return 0
-
-def commandSwapRoute(sInFile,iInSeg,sRouteFile,sOutFile):
-    """
-    Swaps the segement at the point which is closest to the given
-    route 
-    """
-    return 0
-
-def commandInvert(sInFile,iInSeg,iInPoint,sOutFile):
-    """
-    Inverts the route
-    """
-    return 0
-
-
 def commandFindClosestCoord(sInFile,iInSeg,lat,lon):
     """
     Returns the index of the closest RTE point to the given coord
@@ -412,6 +415,7 @@ def commandFindClosestCoord(sInFile,iInSeg,lat,lon):
     lLatLons=[getLatLon(ePt) for ePt in eRtePts]
     index,brg,rng = closestToPoint(lLatLons,LatLon(lat,lon))
     return index,lLatLons[index].lat,lLatLons[index].lon,brg,rng
+
 
 def commandFindClosestRoute(sInFile1,iInSeg1,sInFile2,iInSeg2):
     """
@@ -451,4 +455,4 @@ def commandFindClosestRoute(sInFile1,iInSeg1,sInFile2,iInSeg2):
 
     iP1,iP2,brg,rng = closestToRoute(lInLatLons1,lInLatLons2)
     return iP1,iP2,lInLatLons1[iP1].lat,lInLatLons1[iP1].lon, \
-        lInLatLons2[iP2].lat,lInLatLons2[iP1].lon, brg,rng 
+        lInLatLons2[iP2].lat,lInLatLons2[iP1].lon,brg,rng 
