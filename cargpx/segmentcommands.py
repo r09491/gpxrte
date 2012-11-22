@@ -1,11 +1,11 @@
 import os
 
+from copy import deepcopy
 import lxml.etree as etree
 
 from .latlon import *
 from .error import commandError
 from .time import getNowZulu
-from .gpx import Gpx, Rte
 from .schemes import gpsbabel
 
         
@@ -48,76 +48,44 @@ def writeGpxFile(eGpx,lLatLon,sOutFile):
                                       xml_declaration=True,pretty_print=True)
 
 
-def modifyGpxFile(sFileName, iSegmentNumber, applyModifier, args):
+def modifyGpxFile(sFileName, iInSeg, applyModifier, args):
     """
     """
 
-    eAnyroot = Gpx(sFileName)
-    if eAnyroot is None:
+    eGpx = etree.parse(sInFile).getroot()
+    if eGpx is None:
         raise commandError("NOROOT")
+    NS = '{'+eGpx.nsmap[None]+'}%s'
 
-    eAnysegs = eAnyroot.oldRtes()
-    if eAnysegs is None: 
+    eRtes= eGpx.findall(NS % 'rte')
+    if eRtes is None: 
         raise commandError("NOSEG")
+    if (iInSeg < 0) or (iInSeg >= len(eRtes)):
+        raise commandError("ILLSEGNUM")
 
-    if (iSegmentNumber < 0) or (iSegmentNumber >= len(eAnysegs)):
-        raise commandError("ILLSEGMENT")
-
-    eAnyseg=eAnysegs[iSegmentNumber]
-    applyModifier(eAnyseg, args)
-    eAnyroot.write(sFileName)
+    eRte=eRtes[iSegmentNumber]
+    applyModifier(eRte, args)
+    eGpx.write(sFileName)
 
 
-def commandName(sFileName, iSegmentNumber, sName):
+def commandName(sFileName, iInSeg, sName):
     """
     """
 
-    def modifyName(eSeg, sName):
+    def modifyName(eRte, sName):
         """
         Get the old RTE name element. Its content shall become 
         the new segment name.
         """
 
-        eName = eSeg.oldName()
-        if eName is None: 
+        NS = '{'+eRte.nsmap[None]+'}%s'
+        eRteName = eRte.find(NS % 'name')
+        if eRteName is None:
             raise Error("NONAME")
-        eName.poke(sName)
+        eName.text=sName
 
-    modifyGpxFile(sFileName, iSegmentNumber, modifyName, sName)
+    modifyGpxFile(sFileName, iInSeg, modifyName, sName)
 
-
-def writeSegment(eInSeg, iBeg=None, iEnd=None, sName=None, sExt=".gpx"):
-    """
-    """
-    eInPts = eInSeg.oldPts()
-    if eInPts is None:
-        raise commandError("NOPTS")
-
-    if iBeg is None: iBeg = 0
-    if iEnd is None: iEnd = len(eInPts)
-
-    inPts=(ePt.peek() for ePt in eInPts)
-    inLatLons=[LatLon(pt[0],pt[1]) for pt in inPts]
- 
-    from .schemes import gpsbabel
-    eOutRoot = gpsbabel()
-    eOutSeg = eOutRoot.oldRtes()[0] 
-    eOutSeg.clonePts(eInPts[iBeg:iEnd])
-
-    eInName = eInSeg.oldName()
-    eOutName = eOutSeg.oldName()
-    eOutName.clone(eInName)
-
-    eOutMetadata = eOutRoot.oldMetadata()
-    eOutMetadataBounds = eOutMetadata.oldBounds()
-    eOutMetadataBounds.poke(minmaxOf(inLatLons[iBeg:iEnd]))
-    eOutMetadataTime = eOutMetadata.oldTime()
-    eOutMetadataTime.poke(getNowZulu())
-
-    if sName is None:
-        sName = eInName.peek()
-    eOutRoot.write(sName + sExt)
-    
 
 def commandPullAtomic(sInFile, iInSeg, sOutFile):
     """
@@ -154,30 +122,29 @@ def commandPullAtomic(sInFile, iInSeg, sOutFile):
     return len(eGpx.findall(NS % 'rte'))
 
 
-def commandPullCoord(sInFile,iInSegment,iInType,sOutFile, \
+def commandPullCoord(sInFile,iInSeg,iInType,sOutFile, \
                          fBeginLat,fBeginLon,fEndLat,fEndLon):
     """
     Returns a GPX file with a single segment with the start
     point and end point closest to the input requests.
     """
 
-    eInRoot = Gpx(sInFile)
-    if eInRoot is None:
+    eGpx = etree.parse(sInFile).getroot()
+    if eGpx is None:
         raise commandError("NOROOT")
+    NS = '{'+eGpx.nsmap[None]+'}%s'
 
-    eInSegs = eInRoot.oldRtes()
-    if eInSegs is None: 
+    eRtes= eGpx.findall(NS % 'rte')
+    if eRtes is None: 
         raise commandError("NOSEG")
-    if (iInSegment < 0) or (iInSegment >= len(eInSegs)):
-        raise commandError("ILLSEGMENT")
+    if (iInSeg < 0) or (iInSeg >= len(eRtes)):
+        raise commandError("ILLSEGNUM")
+    eInSeg=eInSegs[iInSeg]
 
-    eInSeg=eInSegs[iInSegment]
-    eInPts = eInSeg.oldPts()
+    eRtePts=eRte.findall(NS % 'rtept' )
     if eInPts is None: 
         raise commandError("NOPTS")
-
-    inPts=(ePt.peek() for ePt in eInPts)
-    inLatLons=[LatLon(pt[0],pt[1]) for pt in inPts]
+    inLatLons=[getLatLon(ePt) for ePt in eRtePts]
 
     iBegin=0
     if (fBeginLat is not None) and (fBeginLon is not None):
@@ -199,52 +166,64 @@ def commandPullCoord(sInFile,iInSegment,iInType,sOutFile, \
         # No change for the ending of the list
         fEndLat,fEndLon= inLatLons[-1].lat,inLatLons[-1].lon
     
-    if iBegin >= iEnd:
-        raise commandError("ILLWALKING")
+    if iBegin >= iEnd: raise commandError("ILLWALKING")
 
-    pre, ext = os.path.splitext(os.path.basename(sOutFile))
+    for eRtePt in eRtePts[:iBegin]:eRte.remove(eRtePt) 
+    for eRtePt in eRtePts[iEnd+1:]:eRte.remove(eRtePt) 
 
-    writeSegment(eInSeg,iBegin,iEnd+1,sName=("%s__%04d_%04d__coord.gpx" % \
-                                                 (pre,iBegin,iEnd)),sExt=ext)
-    return 1
+    writeGpxFile(eGpx,lLatLons[iBegin:iEnd+1],sOutFile)
+    return len(eGpx.findall(NS % 'rte'))
 
 
-def commandPullDistance(sInFile,iSegment,sOutFile,fMeter):
+def commandPullDistance(sInFile,iInSeg,fMeter,sOutFile):
     """
     Splits a long GPX route into several segments not exceeding the
     requested distance. The segments may be stored in individual files
     or a single file.
     """
 
-    eInRoot = Gpx(sInFile)
-    if eInRoot is None:
+    eGpx = etree.parse(sInFile).getroot()
+    if eGpx is None:
         raise commandError("NOROOT")
+    NS = '{'+eGpx.nsmap[None]+'}%s'
 
-    eInSegs = eInRoot.oldRtes()
-    if eInSegs is None: 
+    eRtes= eGpx.findall(NS % 'rte')
+    if eRtes is None: 
         raise commandError("NOSEG")
-    if (iSegment < 0) or (iSegment >= len(eInSegs)):
-        raise commandError("ILLSEGMENT")
+    if (iInSeg < 0) or (iInSeg >= len(eRtes)):
+        raise commandError("ILLSEGNUM")
+    for eRte in eRtes[:iInSeg]:eGpx.remove(eRte) 
+    for eRte in eRtes[iInSeg+1:]:eGpx.remove(eRte) 
+    eRte=eRtes[iInSeg]
 
-    eInSeg=eInSegs[iSegment]
-    eInPts = eInSeg.oldPts()
-    if eInPts is None: 
+    eRtePts=eRte.findall(NS % 'rtept' )
+    if eRtePts is None: 
         raise commandError("NOPTS")
-
-    inPts=(ePt.peek() for ePt in eInPts)
-    inLatLons=[LatLon(pt[0],pt[1]) for pt in inPts]
+    inLatLons=[getLatLon(ePt) for ePt in eRtePts]
 
     pre, ext = os.path.splitext(os.path.basename(sOutFile))
-    
+
     iBegin,iCount,fLength = 0, 0, 0.0
     for iEnd in range(1,len(inLatLons)):
         fLength += inLatLons[iEnd].rangeTo(inLatLons[iEnd-1])
         if fLength < fMeter: continue
-        writeSegment(eInSeg,iBegin,iEnd,sName=("%s__%03d__distance" % \
-                                                   (pre,iCount)),sExt=ext)
-        iBegin,iCount,fLength = \
-            iEnd-1,iCount+1,inLatLons[iEnd].rangeTo(inLatLons[iEnd-1])
 
+        eOutGpx=deepcopy(eGpx)
+        eOutRte=eOutGpx.findall(NS % 'rte')[iInSeg]
+        eOutPts=eOutRte.findall(NS % 'rtept' )
+        for ePt in eOutPts[:iBegin]:eOutRte.remove(ePt) 
+        for ePt in eOutPts[iEnd:]:eOutRte.remove(ePt) 
+        eOutLatLons=[getLatLon(ePt) for ePt in eOutPts[iBegin:iEnd]]
+        writeGpxFile(eOutGpx,eOutLatLons,"%s_%03d_distance.gpx" % (pre,iCount))
+
+        iBegin,iCount,fLength = iEnd-1,iCount+1,0.0
+
+    eOutGpx=deepcopy(eGpx)
+    eOutRte=eOutGpx.findall(NS % 'rte')[iInSeg]
+    eOutPts=eOutRte.findall(NS % 'rtept' )
+    for ePt in eOutPts[:iBegin]:eOutRte.remove(ePt) 
+    eOutLatLons=[getLatLon(ePt) for ePt in eOutPts[iBegin:]]
+    writeGpxFile(eOutGpx,eOutLatLons,"%s_%03d_distance.gpx" % (pre,iCount))
     return iCount
 
 

@@ -191,7 +191,7 @@ def runSegmentPullDistance(inputs):
         return -2
 
     try:
-        outSegs = commandPulldistance(sInFile,
+        outSegs = commandPullDistance(sInFile,
                          inputs.insegment, meter, inputs.outfile)
         print ("gpxrte ++  Created %d RTE files." % (outSegs))
     except commandError as e:
@@ -228,8 +228,6 @@ def  runPush(inputs):
     """
     print ("gpxrte :-, Push RTE")
 
-    sOutFile=os.path.abspath(inputs.outfile)
-
     sInFile=os.path.abspath(inputs.infile)
     if not os.path.isfile(sInFile):
         print ("gpxrte :-( Illegal GPX input file %s." % (sInFile))
@@ -239,8 +237,13 @@ def  runPush(inputs):
         print ("gpxrte :-( For RTE segment only!")
         return -2
 
+    sOutFile=os.path.abspath(inputs.outfile)
+    if not os.path.isfile(sOutFile):
+        print ("gpxrte :-( Illegal GPX input file %s." % (sOutFile))
+        return -3
+
     try:
-        iNumSegs=commandPush(sInFile, inputs.insegment, sOutFile)
+        iNumSegs=commandPush(sInFile,inputs.insegment,sOutFile)
     except commandError as e:
         print (e)
     else:
@@ -538,8 +541,8 @@ def parse(commandline):
 
     pullSubparserAtomic = pullSubparser.add_parser('atomic', \
                                help='Pulls complete segments')
-    pullSubparserAtomic.add_argument('-s', '--insegment',dest='insegment', \
-                            type=int, help='Segment number to use for pull')
+    pullSubparserAtomic.add_argument('-s', '--insegment',dest='insegment', type=int, \
+                            required=True, help='Segment number to use for pull')
     pullSubparserAtomic.add_argument('-t', '--intype', dest='intype', \
                             choices=('trk', 'rte', 'wpt'), \
                             default='rte', help='Segment type to use for pull')
@@ -585,8 +588,8 @@ def parse(commandline):
                               help='Pulls segments by distances')
     pullSubparserDistance.add_argument('-m','--meter', dest='meter', \
                              type=float, help='Desired route distance (m)')
-    pullSubparserDistance.add_argument('-s', '--insegment',dest='insegment', \
-                            type=int, default=0, help='Segment number to use for input')
+    pullSubparserDistance.add_argument('-s', '--insegment',dest='insegment',type=int, \
+                            required=True, help='Segment number to use for input')
     pullSubparserDistance.add_argument('-t', '--intype', dest='intype', \
                             choices=('trk', 'rte', 'wpt'), \
                             default='rte', help='Segment type to use for input')
@@ -598,7 +601,7 @@ def parse(commandline):
 
 
     pushParser = subparsers.add_parser('push', help='Pushes a segment')
-    pushParser.add_argument('-s', '--insegment',dest='insegment', required=True, \
+    pushParser.add_argument('-s', '--insegment',dest='insegment', \
                              type=int, help='Segment number to use for input')
     pushParser.add_argument('-t', '--intype', dest='intype', \
                             choices=('trk', 'rte', 'wpt'), \
