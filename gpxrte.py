@@ -424,19 +424,26 @@ def  runDaimler(inputs):
     then the output is written to this file. Otherwise the file name is generated
     according to the convention and written to this file. 
     """
-    result=":-( 'Daimler' command failed )-:"
+    print ("gpxrte :-, Daimlerise")
 
-    eAnysegs = gpx.Garmin(inputs.anygpxfile).oldRtes()
-    if len(eAnysegs) > 0:
-        anysegnum=inputs.segmentnumber
-        if (anysegnum >= 0) and (anysegnum < len(eAnysegs)):
-            eAnyseg=eAnysegs[anysegnum]
-            result = convertToRoute(eAnyseg,inputs.anygpxfile)
-        else:
-            result = ":-( %s: %d )-:" % ("Segment number out of range", anysegnum)
+    sInFile=os.path.abspath(inputs.infile)
+    if not os.path.isfile(sInFile):
+        print ("gpxrte :-( Illegal GPX input file %s." % (sInFile))
+        return -1
+
+    if inputs.outfile is None:
+        sOutFile = sInFile
     else:
-        result = ":-( %s )-:" % ("RTE segment is missing.")
-    return result
+        sOutFile=os.path.abspath(inputs.outfile)
+
+    try:
+        iNumSegs=convertToRoute(sInFile,inputs.insegment,sOutFile)
+    except commandError as e:
+        print (e)
+    else:
+        print ("gpxrte :-; %d segment(s) written." % (iNumSegs))
+        print ("gpxrte :-) Daimler RTEs ok.")
+
 
 def main(inputs):
     """
@@ -637,11 +644,14 @@ def parse(commandline):
 
 
     daimlerParser = subparsers.add_parser('daimler', \
-                            help='Generates a COMAND Online NTG 4.5 route')
+                            help='Generates a COMAND Online NTG 4.5 compatible route')
+    daimlerParser.add_argument('-s','--insegment',dest='insegment', \
+                   type=int, required=True, help='Segment number to use for daimlerisation')
+    daimlerParser.add_argument('-f', '--infile', dest='infile', \
+                            required=True, help='Any GPX file for input', )
+    daimlerParser.add_argument('-F', '--outfile', dest='outfile', \
+                            help='Any GPX file for output', )
     daimlerParser.set_defaults(func=runDaimler)
-    daimlerParser.add_argument(dest='segmentnumber', nargs='?', \
-                            type=int, default=0, \
-                            help='RTE segment number to use')
 
 
     try:

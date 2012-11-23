@@ -27,7 +27,10 @@ def writeGpxFile(eGpx,lLatLon,sOutFile):
 
     if eGpx is None:
         raise commandError("NOROOT")
-    NS = '//{'+eGpx.nsmap[None]+'}%s'
+    try:
+        NS = '//{'+eGpx.nsmap[None]+'}%s'
+    except KeyError:
+        NS = '//{'+eGpx.nsmap['gpx']+'}%s'
 
     if not lLatLon is None:
         eBounds= etree.ETXPath(NS % 'bounds')(eGpx)

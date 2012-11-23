@@ -1,7 +1,11 @@
 STARTER='''<gpx:gpx creator="gpxdaimlercommands.py - http://www.josef-heid.de" version="1.1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:gpx="http://www.topografix.com/GPX/1/1" xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd" xmlns:gpxd="http://www.daimler.com/DaimlerGPXExtensions/V2.4"><gpx:rte><gpx:name>DaimlerStarter</gpx:name><gpx:extensions><gpxd:RteExtension><gpxd:RouteIconId IconId="17"></gpxd:RouteIconId><gpxd:RouteDrivingDirection UsedInDirection="true"></gpxd:RouteDrivingDirection><gpxd:RouteLength Unit="kilometer" Value="0.0"></gpxd:RouteLength></gpxd:RteExtension></gpx:extensions></gpx:rte></gpx:gpx>'''
 
-from . import gpx
-from . import latlon
+import lxml.etree as etree
+
+from .error import *
+from .latlon import *
+
+from segmentcommands import writeGpxFile, getLatLon
 
 def isRouteFileNameOk(sInRouteFileName):
     import os, time
@@ -19,7 +23,7 @@ def getRouteFileName(sInRouteFileName):
         import datetime
         return datetime.datetime.now().strftime("Route_%Y%m%d_%H%M%S.gpx")
 
-def convertToRoute(eInSeg,sInRouteFileName):
+def convertToRoute(sInFile,iInSeg,sOutFile):
     """
     From the given RTE segment produces an output which the COMAND
     Online may use as a route. This is reverse engineered.
@@ -38,41 +42,51 @@ def convertToRoute(eInSeg,sInRouteFileName):
 
     # Create the root element of a new GPX structure. This shall be
     # outputed later to the GPX file.
-    eOutRoot = gpx.Daimler(gpxstring=STARTER)
-    # Get the old RTE segment element as parsed from STARTER.
-    eOutSeg = eOutRoot.oldRtes()[0]
+    eOutGpx = etree.fromstring(STARTER)
+    if eOutGpx is None:
+        raise commandError("NOROOT")
+    outNS = '{'+eOutGpx.nsmap['gpx']+'}%s'
+    extNS = '{'+eOutGpx.nsmap['gpxd']+'}%s'
 
-    # Get the old RTE segment name elementfrom the source. Its content 
-    # shall become the new segment name.
-    eSrcName = eInSeg.oldName()
-    # Get the default RTE segment name element as pared from STARTER. 
-    # Its content shall be overridden.
-    eOutName = eOutSeg.oldName()
-    # Keep the segment name
-    eOutName.clone(eSrcName)
+    eOutRtes= eOutGpx.findall(outNS % 'rte')
+    if eOutRtes is None: 
+        raise commandError("NOSEG")
 
-    # Get the point elements from the provided route segment
-    eSrcPts = eInSeg.oldPts()
-    # The output segment does not contain any point elements yet.
-    # Generate the point elements to receive the points later. They
-    # are subelements of the segment element
-    eOutPts = eOutSeg.newPts(len(eSrcPts))
-    # The source element content is cloned to the point elements
-    # of the output segment.
-    for o, s in zip(eOutPts, eSrcPts): o.clone(s)
+    eInGpx = etree.parse(sInFile).getroot()
+    if eInGpx is None:
+        raise commandError("NOROOT")
+    inNS = '{'+eInGpx.nsmap[None]+'}%s'
 
-    #Calculate the length of the route
-    outPts=(ePt.peek() for ePt in eOutPts)
-    outLatLons=(latlon.LatLon(pt[0],pt[1]) for pt in outPts)
-    rteLength=latlon.lengthOf(list(outLatLons))
+    eInRtes= eInGpx.findall(inNS % 'rte')
+    if eInRtes is None: 
+        raise commandError("NOSEG")
+    if (iInSeg < 0) or (iInSeg >= len(eInRtes)):
+        raise commandError("ILLSEGNUM")
 
-    # Get the daimler extension from the STARTER and store the length
-    eOutExtensions = eOutSeg.oldExtensions()
-    eOutRteExtension = eOutExtensions.oldRteExtension()
-    eOutRteLength = eOutRteExtension.oldRteLength()
-    eOutRteLength.poke(('kilometer', "%.2f" % (rteLength/1000.0)))
+    eOutRtes= eOutGpx.findall(outNS % 'rte')
+    if eOutRtes is None: 
+        raise commandError("NOSEG")
 
-    # Write the tree to the file (Daimler naming conventions)
-    eOutRoot.write(getRouteFileName(sInRouteFileName))
- 
-    return 0
+    eInRte,eOutRte=eInRtes[iInSeg],eOutRtes[0]
+
+    eInRteName = eInRte.find(inNS % 'name')
+    eOutRteName = eOutRte.find(outNS % 'name')
+    eOutRteName.text=eInRteName.text
+
+    eInRtePts = eInRte.findall(inNS % 'rtept')
+    eOutRtePts = [etree.SubElement(eOutRte, outNS % 'rtept', \
+         lat=ePt.get('lat'),lon=ePt.get('lon')) for ePt in eInRtePts] 
+    lLatLons=[getLatLon(ePt) for ePt in eOutRtePts]
+
+
+    sRteLength='%s/%s/%s' % (outNS % 'extensions', \
+                       extNS % 'RteExtension',extNS % 'RouteLength')
+    eOutRteLength = eOutRtes[0].find(sRteLength)
+    eOutRteLength.set('Unit','kilometer')
+    eOutRteLength.set('Value', '%.2f' % (lengthOf(lLatLons)/1000.0))
+
+    if sOutFile is None:
+        sOutFile =getRouteFileName(sInRouteFileName)
+
+    writeGpxFile(eOutGpx,lLatLons,sOutFile)
+    return len(eOutGpx.findall(outNS % 'rte'))
