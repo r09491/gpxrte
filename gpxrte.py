@@ -41,10 +41,6 @@ def  runShow(inputs):
         print ("gpxrte :-( Illegal GPX input file %s." % (sInFile))
         return -1
 
-    if (inputs.intype != "rte"):
-        print ("gpxrte :-( For RTE segment only!")
-        return -2
-
     if inputs.insegment is None:
         try:
             commandAllSegmentsOverview(inputs.infile)
@@ -56,30 +52,6 @@ def  runShow(inputs):
         except commandError as e:
             print (e)
     return 0
-
-
-def  runDaimler(inputs):
-    """
-    Converts an RTE segment to a daimler route compatible format. The gpx file
-    shall exist with a legal content. Segment types other than RTE are ignored.
-
-    If the specified file is consistent with the Daimler route naming covention
-    then the output is written to this file. Otherwise the file name is generated
-    according to the convention and written to this file. 
-    """
-    result=":-( 'Daimler' command failed )-:"
-
-    eAnysegs = gpx.Garmin(inputs.anygpxfile).oldRtes()
-    if len(eAnysegs) > 0:
-        anysegnum=inputs.segmentnumber
-        if (anysegnum >= 0) and (anysegnum < len(eAnysegs)):
-            eAnyseg=eAnysegs[anysegnum]
-            result = convertToRoute(eAnyseg,inputs.anygpxfile)
-        else:
-            result = ":-( %s: %d )-:" % ("Segment number out of range", anysegnum)
-    else:
-        result = ":-( %s )-:" % ("RTE segment is missing.")
-    return result
 
 
 def  runSegmentName(inputs):
@@ -104,10 +76,6 @@ def runSegmentPullCoord(inputs):
     if not os.path.isfile(sInFile):
         print ("gpxrte :-( Illegal GPX input file %s." % (sInFile))
         return -1
-
-    if (inputs.intype != "rte"):
-        print ("gpxrte :-( For RTE segment only!")
-        return -2
 
     if inputs.outfile is None:
         print ("gpxrte :-( Out file name is missing!")
@@ -183,10 +151,6 @@ def runSegmentPullDistance(inputs):
         print ("gpxrte :-( Illegal GPX input file %s." % (sInFile))
         return -1
 
-    if (inputs.intype != "rte"):
-        print ("gpxrte :-( For RTE segment only!")
-        return -2
-
     try:
         outSegs = commandPullDistance(sInFile,
                          inputs.insegment, meter, inputs.outfile)
@@ -207,10 +171,6 @@ def  runSegmentPullAtomic(inputs):
         print ("gpxrte :-( Illegal GPX input file %s." % (sInFile))
         return -1
 
-    if (inputs.intype != "rte"):
-        print ("gpxrte :-( For RTE segment only!")
-        return -2
-
     try:
         iNumFiles=commandPullAtomic(sInFile, inputs.insegment,inputs.outfile)
     except commandError as e:
@@ -229,10 +189,6 @@ def  runPush(inputs):
     if not os.path.isfile(sInFile):
         print ("gpxrte :-( Illegal GPX input file %s." % (sInFile))
         return -1
-
-    if (inputs.intype != "rte"):
-        print ("gpxrte :-( For RTE segment only!")
-        return -2
 
     sOutFile=os.path.abspath(inputs.outfile)
     if not os.path.isfile(sOutFile):
@@ -258,10 +214,6 @@ def  runPurge(inputs):
         print ("gpxrte :-( Illegal GPX input file %s." % (sInFile))
         return -1
 
-    if (inputs.intype != "rte"):
-        print ("gpxrte :-( For RTE segment only!")
-        return -2
-
     try:
         iNumSegs=commandPurge(sInFile, inputs.insegment)
     except commandError as e:
@@ -280,10 +232,6 @@ def  runFlat(inputs):
     if not os.path.isfile(sInFile):
         print ("gpxrte :-( Illegal GPX input file %s." % (sInFile))
         return -1
-
-    if (inputs.intype != "rte"):
-        print ("gpxrte :-( For RTE segment only!")
-        return -2
 
     if inputs.outfile is None:
         sOutFile = sInFile
@@ -309,10 +257,6 @@ def  runReverse(inputs):
         print ("gpxrte :-( Illegal GPX input file %s." % (sInFile))
         return -1
 
-    if (inputs.intype != "rte"):
-        print ("gpxrte :-( For RTE segment only!")
-        return -2
-
     if inputs.outfile is None:
         sOutFile = sInFile
     else:
@@ -336,10 +280,6 @@ def  runHead(inputs):
     if not os.path.isfile(sInFile):
         print ("gpxrte :-( Illegal GPX input file %s." % (sInFile))
         return -1
-
-    if (inputs.intype != "rte"):
-        print ("gpxrte :-( For RTE segment only!")
-        return -2
 
     if inputs.outfile is None:
         sOutFile = sInFile
@@ -365,10 +305,6 @@ def  runTail(inputs):
         print ("gpxrte :-( Illegal GPX input file %s." % (sInFile))
         return -1
 
-    if (inputs.intype != "rte"):
-        print ("gpxrte :-( For RTE segment only!")
-        return -2
-
     if inputs.outfile is None:
         sOutFile = sInFile
     else:
@@ -393,10 +329,6 @@ def  runSwap(inputs):
         print ("gpxrte :-( Illegal GPX input file %s." % (sInFile))
         return -1
 
-    if (inputs.intype != "rte"):
-        print ("gpxrte :-( For RTE segment only!")
-        return -2
-
     if inputs.outfile is None:
         sOutFile = sInFile
     else:
@@ -420,10 +352,6 @@ def runFindClosestCoord(inputs):
     if not os.path.isfile(sInFile):
         print ("gpxrte :-( Illegal GPX input file %s." % (sInFile))
         return -1
-
-    if (inputs.intype != "rte"):
-        print ("gpxrte :-( For RTE segment only!")
-        return -2
 
     if not ((inputs.lat is None) and  (inputs.lon is None)):
         if inputs.city is not None:
@@ -487,6 +415,29 @@ def runFindClosestRoute(inputs):
                    (i1,lat1,lon1,i2,lat2,lon2,brg,rng))
 
 
+def  runDaimler(inputs):
+    """
+    Converts an RTE segment to a daimler route compatible format. The gpx file
+    shall exist with a legal content. Segment types other than RTE are ignored.
+
+    If the specified file is consistent with the Daimler route naming covention
+    then the output is written to this file. Otherwise the file name is generated
+    according to the convention and written to this file. 
+    """
+    result=":-( 'Daimler' command failed )-:"
+
+    eAnysegs = gpx.Garmin(inputs.anygpxfile).oldRtes()
+    if len(eAnysegs) > 0:
+        anysegnum=inputs.segmentnumber
+        if (anysegnum >= 0) and (anysegnum < len(eAnysegs)):
+            eAnyseg=eAnysegs[anysegnum]
+            result = convertToRoute(eAnyseg,inputs.anygpxfile)
+        else:
+            result = ":-( %s: %d )-:" % ("Segment number out of range", anysegnum)
+    else:
+        result = ":-( %s )-:" % ("RTE segment is missing.")
+    return result
+
 def main(inputs):
     """
     """
@@ -510,19 +461,9 @@ def parse(commandline):
     showParser = subparsers.add_parser('show', help='Shows the content of a GPX file')
     showParser.add_argument('-s', '--insegment',dest='insegment', \
                                 type=int, help='Segment number to show')
-    showParser.add_argument('-t', '--intype', dest='intype', \
-                                choices=('trk', 'rte', 'wpt'), \
-                                default='rte', help='Segment type to use for input')
     showParser.add_argument('-f', '--infile', dest='infile', required=True, \
                                 help='Any GPX file to show')
     showParser.set_defaults(func=runShow)
-
-    daimlerParser = subparsers.add_parser('daimler', \
-                            help='Generates a COMAND Online NTG 4.5 route')
-    daimlerParser.set_defaults(func=runDaimler)
-    daimlerParser.add_argument(dest='segmentnumber', nargs='?', \
-                            type=int, default=0, \
-                            help='RTE segment number to use')
 
 
     nameParser = subparsers.add_parser('name', help='Sets the name of a segment')
@@ -535,14 +476,10 @@ def parse(commandline):
     
     pullParser = subparsers.add_parser('pull', help='Pulls a segment')
     pullSubparser = pullParser.add_subparsers(help='subcommands pull')
-
     pullSubparserAtomic = pullSubparser.add_parser('atomic', \
                                help='Pulls complete segments')
     pullSubparserAtomic.add_argument('-s', '--insegment',dest='insegment', type=int, \
                             required=True, help='Segment number to use for pull')
-    pullSubparserAtomic.add_argument('-t', '--intype', dest='intype', \
-                            choices=('trk', 'rte', 'wpt'), \
-                            default='rte', help='Segment type to use for pull')
     pullSubparserAtomic.add_argument('-f', '--infile', dest='infile', required=True, \
                             help='Any GPX file for pull', )
     pullSubparserAtomic.add_argument('-F', '--outfile', dest='outfile', \
@@ -571,9 +508,6 @@ def parse(commandline):
 
     pullSubparserCoord.add_argument('-s', '--insegment',dest='insegment', \
                             type=int, default=0, help='Segment number to use for input')
-    pullSubparserCoord.add_argument('-t', '--intype', dest='intype', \
-                            choices=('trk', 'rte', 'wpt'), \
-                            default='rte', help='Segment type to use for input')
     pullSubparserCoord.add_argument('-f', '--infile', dest='infile', required=True, \
                             help='Any GPX file for input', )
     pullSubparserCoord.add_argument('-F', '--outfile', dest='outfile', \
@@ -587,9 +521,6 @@ def parse(commandline):
                              type=float, help='Desired route distance (m)')
     pullSubparserDistance.add_argument('-s', '--insegment',dest='insegment',type=int, \
                             required=True, help='Segment number to use for input')
-    pullSubparserDistance.add_argument('-t', '--intype', dest='intype', \
-                            choices=('trk', 'rte', 'wpt'), \
-                            default='rte', help='Segment type to use for input')
     pullSubparserDistance.add_argument('-f', '--infile', dest='infile', \
                             required=True, help='Any GPX file for input', )
     pullSubparserDistance.add_argument('-F', '--outfile', dest='outfile', \
@@ -600,9 +531,6 @@ def parse(commandline):
     pushParser = subparsers.add_parser('push', help='Pushes a segment')
     pushParser.add_argument('-s', '--insegment',dest='insegment', \
                              type=int, help='Segment number to use for input')
-    pushParser.add_argument('-t', '--intype', dest='intype', \
-                            choices=('trk', 'rte', 'wpt'), \
-                            default='rte', help='Segment type to use for input')
     pushParser.add_argument('-f', '--infile', dest='infile', \
                             required=True, help='Any GPX file for input', )
     pushParser.add_argument('-F', '--outfile', dest='outfile', \
@@ -613,18 +541,12 @@ def parse(commandline):
     purgeParser = subparsers.add_parser('purge', help='Purges a segment')
     purgeParser.add_argument('-s', '--insegment',dest='insegment', type=int, default=0, \
                                 required=True, help='Segment number to remove')
-    purgeParser.add_argument('-t', '--intype', dest='intype', \
-                            choices=('trk', 'rte', 'wpt'), \
-                            default='rte', help='Segment type to use for input')
     purgeParser.add_argument('-f', '--infile', dest='infile', \
                             required=True, help='Any GPX file for input', )
     purgeParser.set_defaults(func=runPurge)
 
 
     flatParser = subparsers.add_parser('flat', help='Flattens into segment')
-    flatParser.add_argument('-t', '--intype', dest='intype', \
-                            choices=('trk', 'rte', 'wpt'), \
-                            default='rte', help='Segment type to use for input')
     flatParser.add_argument('-f', '--infile', dest='infile', \
                             required=True, help='Any GPX file for input', )
     flatParser.add_argument('-F', '--outfile', dest='outfile', \
@@ -635,9 +557,6 @@ def parse(commandline):
     reverseParser = subparsers.add_parser('reverse', help='Reverses the segment')
     reverseParser.add_argument('-s', '--insegment',dest='insegment',required=True, \
                                    type=int, help='Segment number to use for reverse')
-    reverseParser.add_argument('-t', '--intype', dest='intype', \
-                            choices=('trk', 'rte', 'wpt'), \
-                            default='rte', help='Segment type to use for input')
     reverseParser.add_argument('-f', '--infile', dest='infile', \
                             required=True, help='Any GPX file for input', )
     reverseParser.add_argument('-F', '--outfile', dest='outfile', \
@@ -650,9 +569,6 @@ def parse(commandline):
                                    type=int, help='Segment number to use for head')
     headParser.add_argument('-p', '--inpoint',dest='inpoint',required=True, \
                             type=int, help='Point number of fist not inclueded')
-    headParser.add_argument('-t', '--intype', dest='intype', \
-                            choices=('trk', 'rte', 'wpt'), \
-                            default='rte', help='Segment type to use for input')
     headParser.add_argument('-f', '--infile', dest='infile', \
                             required=True, help='Any GPX file for input', )
     headParser.add_argument('-F', '--outfile', dest='outfile', \
@@ -665,9 +581,6 @@ def parse(commandline):
                                    type=int, help='Segment number to use for tail')
     tailParser.add_argument('-p', '--inpoint',dest='inpoint',required=True, \
                             type=int, help='Point number of first tail point')
-    tailParser.add_argument('-t', '--intype', dest='intype', \
-                            choices=('trk', 'rte', 'wpt'), \
-                            default='rte', help='Segment type to use for input')
     tailParser.add_argument('-f', '--infile', dest='infile', \
                             required=True, help='Any GPX file for input', )
     tailParser.add_argument('-F', '--outfile', dest='outfile', \
@@ -680,9 +593,6 @@ def parse(commandline):
                             type=int, help='Segment number to use for swap')
     swapParser.add_argument('-p', '--inpoint',dest='inpoint',required=True, \
                             type=int, help='Point number to swap at')
-    swapParser.add_argument('-t', '--intype', dest='intype', \
-                            choices=('trk', 'rte', 'wpt'), \
-                            default='rte', help='Segment type to use for swap')
     swapParser.add_argument('-f', '--infile', dest='infile', required=True, \
                             help='Any GPX file for input', )
     swapParser.add_argument('-F', '--outfile', dest='outfile', \
@@ -712,6 +622,7 @@ def parse(commandline):
                             required=True, help='Any GPX file for find', )
     findClosestSubparserCoord.set_defaults(func=runFindClosestCoord)
 
+
     findClosestSubparserRoute = findClosestSubparser.add_parser('route', \
                                help='Finds the points closest from two routes')
     findClosestSubparserRoute.add_argument('-s1', '--insegment1',dest='insegment1', \
@@ -723,6 +634,15 @@ def parse(commandline):
     findClosestSubparserRoute.add_argument('-f2', '--infile2', dest='infile2', \
                             required=True, help='Any GPX file for find', )
     findClosestSubparserRoute.set_defaults(func=runFindClosestRoute)
+
+
+    daimlerParser = subparsers.add_parser('daimler', \
+                            help='Generates a COMAND Online NTG 4.5 route')
+    daimlerParser.set_defaults(func=runDaimler)
+    daimlerParser.add_argument(dest='segmentnumber', nargs='?', \
+                            type=int, default=0, \
+                            help='RTE segment number to use')
+
 
     try:
         inputs=parser.parse_args(commandline)
