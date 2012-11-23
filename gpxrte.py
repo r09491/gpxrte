@@ -4,29 +4,26 @@
 import sys, os
 import string
 
-from cargpx.error import commandError  
+from rte.error import commandError  
 
-from cargpx.overviewcommands import commandAllSegmentsOverview
-from cargpx.overviewcommands import commandSingleSegmentDetail
-from cargpx.daimlercommands import convertToRoute  
+from rte.overviewcommands import commandAllSegmentsOverview
+from rte.overviewcommands import commandSingleSegmentDetail
+from rte.daimlercommands import convertToRoute  
 
-from cargpx.segmentcommands import getCoords
-from cargpx.segmentcommands import commandName  
-from cargpx.segmentcommands import commandPullAtomic
-from cargpx.segmentcommands import commandPullCoord 
-from cargpx.segmentcommands import commandPullDistance 
-from cargpx.segmentcommands import commandPush
-from cargpx.segmentcommands import commandPurge
-from cargpx.segmentcommands import commandFlat
-from cargpx.segmentcommands import commandReverse
-from cargpx.segmentcommands import commandHead
-from cargpx.segmentcommands import commandTail
-from cargpx.segmentcommands import commandSwap
-from cargpx.segmentcommands import commandFindClosestCoord
-from cargpx.segmentcommands import commandFindClosestRoute
-
-from cargpx import gpx as gpx
-
+from rte.segmentcommands import getCoords
+from rte.segmentcommands import commandName  
+from rte.segmentcommands import commandPullAtomic
+from rte.segmentcommands import commandPullCoord 
+from rte.segmentcommands import commandPullDistance 
+from rte.segmentcommands import commandPush
+from rte.segmentcommands import commandPurge
+from rte.segmentcommands import commandFlat
+from rte.segmentcommands import commandReverse
+from rte.segmentcommands import commandHead
+from rte.segmentcommands import commandTail
+from rte.segmentcommands import commandSwap
+from rte.segmentcommands import commandFindClosestCoord
+from rte.segmentcommands import commandFindClosestRoute
 
 def  runShow(inputs):
     """
