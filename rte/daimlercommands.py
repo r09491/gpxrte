@@ -1,13 +1,15 @@
 STARTER='''<gpx:gpx creator="gpxdaimlercommands.py - http://www.josef-heid.de" version="1.1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:gpx="http://www.topografix.com/GPX/1/1" xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd" xmlns:gpxd="http://www.daimler.com/DaimlerGPXExtensions/V2.4"><gpx:rte><gpx:name>DaimlerStarter</gpx:name><gpx:extensions><gpxd:RteExtension><gpxd:RouteIconId IconId="17"></gpxd:RouteIconId><gpxd:RouteDrivingDirection UsedInDirection="true"></gpxd:RouteDrivingDirection><gpxd:RouteLength Unit="kilometer" Value="0.0"></gpxd:RouteLength></gpxd:RteExtension></gpx:extensions></gpx:rte></gpx:gpx>'''
 
-import lxml.etree as etree
-
 from .error import *
 from .latlon import *
+from .supporters import *
 
-from segmentcommands import writeGpxFile, getLatLon
+import lxml.etree as etree
 
 def isRouteFileNameOk(sInRouteFileName):
+    """
+    Returns true if the route file name meets Daimler conventions
+    """
     import os, time
     try:
         sBasename = os.path.basename(sInRouteFileName)
@@ -16,12 +18,14 @@ def isRouteFileNameOk(sInRouteFileName):
     except ValueError:
         return False
 
+
 def getRouteFileName(sInRouteFileName):
     if isRouteFileNameOk(sInRouteFileName):
         return (sInRouteFileName)
     else:
         import datetime
         return datetime.datetime.now().strftime("Route_%Y%m%d_%H%M%S.gpx")
+
 
 def convertToRoute(sInFile,iInSeg,sOutFile):
     """
@@ -48,7 +52,7 @@ def convertToRoute(sInFile,iInSeg,sOutFile):
     outNS = '{'+eOutGpx.nsmap['gpx']+'}%s'
     extNS = '{'+eOutGpx.nsmap['gpxd']+'}%s'
 
-    eOutRtes= eOutGpx.findall(outNS % 'rte')
+    eOutRtes = eOutGpx.findall(outNS % 'rte')
     if eOutRtes is None: 
         raise commandError("NOSEG")
 
@@ -57,17 +61,17 @@ def convertToRoute(sInFile,iInSeg,sOutFile):
         raise commandError("NOROOT")
     inNS = '{'+eInGpx.nsmap[None]+'}%s'
 
-    eInRtes= eInGpx.findall(inNS % 'rte')
+    eInRtes = eInGpx.findall(inNS % 'rte')
     if eInRtes is None: 
         raise commandError("NOSEG")
     if (iInSeg < 0) or (iInSeg >= len(eInRtes)):
         raise commandError("ILLSEGNUM")
 
-    eOutRtes= eOutGpx.findall(outNS % 'rte')
+    eOutRtes = eOutGpx.findall(outNS % 'rte')
     if eOutRtes is None: 
         raise commandError("NOSEG")
 
-    eInRte,eOutRte=eInRtes[iInSeg],eOutRtes[0]
+    eInRte, eOutRte=eInRtes[iInSeg], eOutRtes[0]
 
     eInRteName = eInRte.find(inNS % 'name')
     eOutRteName = eOutRte.find(outNS % 'name')

@@ -4,26 +4,10 @@
 import sys, os
 import string
 
-from rte.error import commandError  
-
-from rte.overviewcommands import commandAllSegmentsOverview
-from rte.overviewcommands import commandSingleSegmentDetail
-from rte.daimlercommands import convertToRoute  
-
-from rte.segmentcommands import getCoords
-from rte.segmentcommands import commandName  
-from rte.segmentcommands import commandPullAtomic
-from rte.segmentcommands import commandPullCoord 
-from rte.segmentcommands import commandPullDistance 
-from rte.segmentcommands import commandPush
-from rte.segmentcommands import commandPurge
-from rte.segmentcommands import commandFlat
-from rte.segmentcommands import commandReverse
-from rte.segmentcommands import commandHead
-from rte.segmentcommands import commandTail
-from rte.segmentcommands import commandSwap
-from rte.segmentcommands import commandFindClosestCoord
-from rte.segmentcommands import commandFindClosestRoute
+from rte.error import *  
+from rte.overviewcommands import *
+from rte.daimlercommands import *
+from rte.segmentcommands import *
 
 def  runShow(inputs):
     """
@@ -70,7 +54,6 @@ def  runSegmentName(inputs):
 def runSegmentPullCoord(inputs):
     """
     """
-    print ("gpxrte :-, Pull RTE by coords")
 
     sInFile=os.path.abspath(inputs.infile)
     if not os.path.isfile(sInFile):
@@ -144,8 +127,6 @@ def runSegmentPullDistance(inputs):
     meter = inputs.meter if inputs.meter is not None else 22500.0
     meter = -meter if meter < 0.0 else meter
 
-    print ("gpxrte :-, Pull RTE by distance")
-
     sInFile=os.path.abspath(inputs.infile)
     if not os.path.isfile(sInFile):
         print ("gpxrte :-( Illegal GPX input file %s." % (sInFile))
@@ -164,7 +145,6 @@ def runSegmentPullDistance(inputs):
 def  runSegmentPullAtomic(inputs):
     """
     """
-    print ("gpxrte :-, Pull RTE atomic")
 
     sInFile=os.path.abspath(inputs.infile)
     if not os.path.isfile(sInFile):
@@ -183,7 +163,6 @@ def  runSegmentPullAtomic(inputs):
 def  runPush(inputs):
     """
     """
-    print ("gpxrte :-, Push RTE")
 
     sInFile=os.path.abspath(inputs.infile)
     if not os.path.isfile(sInFile):
@@ -207,7 +186,6 @@ def  runPush(inputs):
 def  runPurge(inputs):
     """
     """
-    print ("gpxrte :-, Purge RTE")
 
     sInFile=os.path.abspath(inputs.infile)
     if not os.path.isfile(sInFile):
@@ -226,7 +204,6 @@ def  runPurge(inputs):
 def  runFlat(inputs):
     """
     """
-    print ("gpxrte :-, Flat RTEs")
 
     sInFile=os.path.abspath(inputs.infile)
     if not os.path.isfile(sInFile):
@@ -250,7 +227,6 @@ def  runFlat(inputs):
 def  runReverse(inputs):
     """
     """
-    print ("gpxrte :-, Reverse RTEs")
 
     sInFile=os.path.abspath(inputs.infile)
     if not os.path.isfile(sInFile):
@@ -274,7 +250,6 @@ def  runReverse(inputs):
 def  runHead(inputs):
     """
     """
-    print ("gpxrte :-, Head RTEs")
 
     sInFile=os.path.abspath(inputs.infile)
     if not os.path.isfile(sInFile):
@@ -298,7 +273,6 @@ def  runHead(inputs):
 def  runTail(inputs):
     """
     """
-    print ("gpxrte :-, Tail RTEs")
 
     sInFile=os.path.abspath(inputs.infile)
     if not os.path.isfile(sInFile):
@@ -322,7 +296,6 @@ def  runTail(inputs):
 def  runSwap(inputs):
     """
     """
-    print ("gpxrte :-, Swap RTE at index")
 
     sInFile=os.path.abspath(inputs.infile)
     if not os.path.isfile(sInFile):
@@ -346,7 +319,6 @@ def  runSwap(inputs):
 def runFindClosestCoord(inputs):
     """
     """
-    print ("gpxrte :-, Find closest RTE point to coords")
 
     sInFile=os.path.abspath(inputs.infile)
     if not os.path.isfile(sInFile):
@@ -393,7 +365,6 @@ def runFindClosestCoord(inputs):
 def runFindClosestRoute(inputs):
     """
     """
-    print ("gpxrte :-, Find closest RTE point to routes")
 
     sInFile1=os.path.abspath(inputs.infile1)
     if not os.path.isfile(sInFile1):
@@ -424,7 +395,6 @@ def  runDaimler(inputs):
     then the output is written to this file. Otherwise the file name is generated
     according to the convention and written to this file. 
     """
-    print ("gpxrte :-, Daimlerise")
 
     sInFile=os.path.abspath(inputs.infile)
     if not os.path.isfile(sInFile):

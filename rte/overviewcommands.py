@@ -1,7 +1,9 @@
-import lxml.etree as etree
 
-from .latlon import LatLon, lengthOf, eleProfileOf
-from .error import commandError
+from .error import *
+from .latlon import *
+from .supporters import *
+
+import lxml.etree as etree
 
 def getLatLon(ePt):
     return LatLon(float(ePt.get('lat')),float(ePt.get('lon')))
@@ -13,8 +15,9 @@ def summarizeSingleSegment(eRte):
     points and calculates the total distance, climb, and descend 
     to the summary list 
     """
-
-    NS = '{'+eRte.nsmap[None]+'}%s'
+    if not etree.iselement(eRte):
+        raise commandError("NOELE")
+    NS = getNS(eRte)
 
     eRteName = eRte.find(NS % 'name')
     if eRteName is None: 
@@ -32,7 +35,7 @@ def summarizeSingleSegment(eRte):
     lNames =(eName.text for eName in eRtePtNames)
 
     eRtePtEles = (eRtePt.find(NS % 'ele') for eRtePt in eRtePts)
-    lEles =(float(eEle.text) for eEle in eRtePtEles)
+    lEles =(float(eEle.text) for eEle in eRtePtEles if eEle is not None)
 
     srcLength=lengthOf(list(lLatLons))
     srcClimb,srcDescend=eleProfileOf(list(lEles))
@@ -88,7 +91,7 @@ def commandAllSegmentsOverview(sInFile):
     eGpx = etree.parse(sInFile).getroot()
     if eGpx is None:
         raise commandError("NOROOT")
-    NS = '//{'+eGpx.nsmap[None]+'}%s'
+    NS = getNS(eGpx)
 
     eRtes= etree.ETXPath(NS % 'rte')(eGpx)
     if eRtes is None: 
@@ -104,7 +107,7 @@ def commandSingleSegmentDetail(sInFile,iInSeg):
     eGpx = etree.parse(sInFile).getroot()
     if eGpx is None:
         raise commandError("NOROOT")
-    NS = '{'+eGpx.nsmap[None]+'}%s'
+    NS = getNS(eGpx)
 
     eRtes= eGpx.findall(NS % 'rte')
     if eRtes is None: 

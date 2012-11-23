@@ -1,13 +1,11 @@
 import os
 
+from .error import *
+from .latlon import *
+from .supporters import *
+
 from copy import deepcopy
 import lxml.etree as etree
-
-from .latlon import *
-from .error import commandError
-from .time import getNowZulu
-from .schemes import gpsbabel
-
         
 def getCoords(sCity):
     """
@@ -17,40 +15,6 @@ def getCoords(sCity):
     return geoNames.geocode(sCity,exactly_one=False)
 
 
-def getLatLon(ePt):
-    return LatLon(float(ePt.get('lat')),float(ePt.get('lon')))
-
-
-def writeGpxFile(eGpx,lLatLon,sOutFile):
-    """
-    """
-
-    if eGpx is None:
-        raise commandError("NOROOT")
-    try:
-        NS = '//{'+eGpx.nsmap[None]+'}%s'
-    except KeyError:
-        NS = '//{'+eGpx.nsmap['gpx']+'}%s'
-
-    if not lLatLon is None:
-        eBounds= etree.ETXPath(NS % 'bounds')(eGpx)
-        if eBounds:
-            minlat,minlon,maxlat,maxlon = \
-                minmaxOf(lLatLon,NULL_BOUNDS)
-            eBounds[0].set('minlat',str(minlat))
-            eBounds[0].set('minlon',str(minlon))
-            eBounds[0].set('maxlat',str(maxlat))
-            eBounds[0].set('maxlon',str(maxlon))
-
-    eTime= etree.ETXPath(NS % 'time')(eGpx)
-    if eTime: 
-        eTime[0].text=getNowZulu()
-
-    eGpx.set('creator', 'gpxrte - http://www.josef-heid.de')        
-    etree.ElementTree(eGpx).write(sOutFile,encoding='utf-8', \
-                                      xml_declaration=True,pretty_print=True)
-
-
 def modifyGpxFile(sFileName, iInSeg, applyModifier, args):
     """
     """
@@ -58,7 +22,7 @@ def modifyGpxFile(sFileName, iInSeg, applyModifier, args):
     eGpx = etree.parse(sInFile).getroot()
     if eGpx is None:
         raise commandError("NOROOT")
-    NS = '{'+eGpx.nsmap[None]+'}%s'
+    NS = getNS(eGpx)
 
     eRtes= eGpx.findall(NS % 'rte')
     if eRtes is None: 
@@ -81,7 +45,7 @@ def commandName(sFileName, iInSeg, sName):
         the new segment name.
         """
 
-        NS = '{'+eRte.nsmap[None]+'}%s'
+        NS = getNS(eRte)
         eRteName = eRte.find(NS % 'name')
         if eRteName is None:
             raise Error("NONAME")
@@ -98,7 +62,7 @@ def commandPullAtomic(sInFile, iInSeg, sOutFile):
     eGpx = etree.parse(sInFile).getroot()
     if eGpx is None:
         raise commandError("NOROOT")
-    NS = '{'+eGpx.nsmap[None]+'}%s'
+    NS = getNS(eGpx)
 
     eRtes= eGpx.findall(NS % 'rte')
     if eRtes is None: 
@@ -135,7 +99,7 @@ def commandPullCoord(sInFile,iInSeg,iInType,sOutFile, \
     eGpx = etree.parse(sInFile).getroot()
     if eGpx is None:
         raise commandError("NOROOT")
-    NS = '{'+eGpx.nsmap[None]+'}%s'
+    NS = getNS(eGpx)
 
     eRtes= eGpx.findall(NS % 'rte')
     if eRtes is None: 
@@ -188,7 +152,7 @@ def commandPullDistance(sInFile,iInSeg,fMeter,sOutFile):
     eGpx = etree.parse(sInFile).getroot()
     if eGpx is None:
         raise commandError("NOROOT")
-    NS = '{'+eGpx.nsmap[None]+'}%s'
+    NS = getNS(eGpx)
 
     eRtes= eGpx.findall(NS % 'rte')
     if eRtes is None: 
@@ -238,7 +202,7 @@ def commandPush(sInFile,iInSeg,sOutFile):
     eInGpx = etree.parse(sInFile).getroot()
     if eInGpx is None:
         raise commandError("NOROOT")
-    NS = '{'+eInGpx.nsmap[None]+'}%s'
+    NS = getNS(eInGpx)
 
     eInRtes= eInGpx.findall(NS % 'rte')
     if eInRtes is None: 
@@ -247,7 +211,7 @@ def commandPush(sInFile,iInSeg,sOutFile):
     eOutGpx = etree.parse(sOutFile).getroot()
     if eOutGpx is None:
         raise commandError("NOROOT")
-    NS = '{'+eOutGpx.nsmap[None]+'}%s'
+    NS = getNS(eOutGpx)
     
     if iInSeg is None:
         eOutGpx.extend(eInRtes)
@@ -271,7 +235,7 @@ def commandPurge(sInFile,iInSeg):
     eGpx = etree.parse(sInFile).getroot()
     if eGpx is None:
         raise commandError("NOROOT")
-    NS = '{'+eGpx.nsmap[None]+'}%s'
+    NS = getNS(eGpx)
 
     eRtes= eGpx.findall(NS % 'rte')
     if eRtes is None: 
@@ -298,7 +262,7 @@ def commandFlat(sInFile,sOutFile):
     eGpx = etree.parse(sInFile).getroot()
     if eGpx is None:
         raise commandError("NOROOT")
-    NS = '{'+eGpx.nsmap[None]+'}%s'
+    NS = getNS(eGpx)
 
     eRtes= eGpx.findall(NS % 'rte')
     if eRtes is None: 
@@ -325,7 +289,7 @@ def commandReverse(sInFile,iInSeg,sOutFile):
     eGpx = etree.parse(sInFile).getroot()
     if eGpx is None:
         raise commandError("NOROOT")
-    NS = '{'+eGpx.nsmap[None]+'}%s'
+    NS = getNS(eGpx)
 
     eRtes= eGpx.findall(NS % 'rte')
     if eRtes is None: 
@@ -349,7 +313,7 @@ def commandHead(sInFile,iInSeg,iInPoint,sOutFile):
     eGpx = etree.parse(sInFile).getroot()
     if eGpx is None:
         raise commandError("NOROOT")
-    NS = '{'+eGpx.nsmap[None]+'}%s'
+    NS = getNS(eGpx)
 
     eRtes= eGpx.findall(NS % 'rte')
     if eRtes is None: 
@@ -377,7 +341,7 @@ def commandTail(sInFile,iInSeg,iInPoint,sOutFile):
     eGpx = etree.parse(sInFile).getroot()
     if eGpx is None:
         raise commandError("NOROOT")
-    NS = '{'+eGpx.nsmap[None]+'}%s'
+    NS = getNS(eGpx)
 
     eRtes= eGpx.findall(NS % 'rte')
     if eRtes is None: 
@@ -405,7 +369,7 @@ def commandSwap(sInFile,iInSeg,iInPoint,sOutFile):
     eGpx = etree.parse(sInFile).getroot()
     if eGpx is None:
         raise commandError("NOROOT")
-    NS = '{'+eGpx.nsmap[None]+'}%s'
+    NS = getNS(eGpx)
 
     eRtes= eGpx.findall(NS % 'rte')
     if eRtes is None: 
@@ -437,7 +401,7 @@ def commandFindClosestCoord(sInFile,iInSeg,lat,lon):
     eGpx = etree.parse(sInFile).getroot()
     if eGpx is None:
         raise commandError("NOROOT")
-    NS = '{'+eGpx.nsmap[None]+'}%s'
+    NS = getNS(eGpx)
 
     eRtes= eGpx.findall(NS % 'rte')
     if eRtes is None: 
@@ -461,7 +425,7 @@ def commandFindClosestRoute(sInFile1,iInSeg1,sInFile2,iInSeg2):
     eInGpx = etree.parse(sInFile1).getroot()
     if eInGpx is None:
         raise commandError("NOROOT")
-    NS = '{'+eInGpx.nsmap[None]+'}%s'
+    NS = getNS(InGpx)
 
     eInRtes1= eInGpx.findall(NS % 'rte')
     if eInRtes1 is None: 
@@ -477,7 +441,7 @@ def commandFindClosestRoute(sInFile1,iInSeg1,sInFile2,iInSeg2):
     eInGpx2 = etree.parse(sInFile2).getroot()
     if eInGpx2 is None:
         raise commandError("NOROOT")
-    NS = '{'+eInGpx2.nsmap[None]+'}%s'
+    NS = getNS(eInGpx2)
 
     eInRtes2= eInGpx2.findall(NS % 'rte')
     if eInRtes2 is None: 
