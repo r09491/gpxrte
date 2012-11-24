@@ -1,5 +1,6 @@
 from .error import *
 from .latlon import *
+from .time import *
 
 import lxml.etree as etree
 
@@ -38,7 +39,7 @@ def writeGpxFile(eGpx,lLatLon,sOutFile):
 
     eTime= etree.ETXPath(NS % 'time')(eGpx)
     if eTime: 
-        eTime[0].text=getNowZulu()
+        eTime[0].text=getNowUtc()
 
     eGpx.set('creator', 'gpxrte - http://www.josef-heid.de')        
     etree.ElementTree(eGpx).write(sOutFile,encoding='utf-8', \

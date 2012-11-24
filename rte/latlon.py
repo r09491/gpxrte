@@ -131,11 +131,12 @@ def isRoundTrip(lLatLon):
 
 def closestToPoint(lLatLon,pLatLon):
     """
-    Returns the closest point index with bearing and range in meters
+    Returns the closest point index with bearing and range in meters to
+    the point
     """
     lRng = [pLatLon.rangeTo(ll) for ll in lLatLon]
     iP = lRng.index(min(lRng))
-    return iP,pLatLon.bearingTo(lLatLon[iP]),pLatLon.rangeTo(lLatLon[iP])
+    return iP,lLatLon[iP].bearingTo(pLatLon),lLatLon[iP].rangeTo(pLatLon)
 
 def closestToRoute(lLatLon1,lLatLon2):
     """
@@ -144,4 +145,4 @@ def closestToRoute(lLatLon1,lLatLon2):
     lClosest = [closestToPoint(lLatLon1,ll) for ll in lLatLon2]
     lRng = [p[2] for p in lClosest]
     iP = lRng.index(min(lRng))
-    return iP,lClosest[iP][0],lClosest[iP][1],lClosest[iP][2]
+    return lClosest[iP][0],iP,lClosest[iP][1],lClosest[iP][2]

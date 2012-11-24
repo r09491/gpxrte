@@ -15,7 +15,7 @@ def getCoords(sCity):
     return geoNames.geocode(sCity,exactly_one=False)
 
 
-def modifyGpxFile(sFileName, iInSeg, applyModifier, args):
+def modifyGpxFile(sInFile,iInSeg,sOutFile,applyModifier,args):
     """
     """
 
@@ -30,12 +30,13 @@ def modifyGpxFile(sFileName, iInSeg, applyModifier, args):
     if (iInSeg < 0) or (iInSeg >= len(eRtes)):
         raise commandError("ILLSEGNUM")
 
-    eRte=eRtes[iSegmentNumber]
-    applyModifier(eRte, args)
-    eGpx.write(sFileName)
+    applyModifier(eRtes[iInSeg], args)
+
+    writeGpxFile(eGpx,None,sOutFile)
+    return len(eRtes)
 
 
-def commandName(sFileName, iInSeg, sName):
+def commandName(sInFile, iInSeg, sName, sOutFile):
     """
     """
 
@@ -44,14 +45,13 @@ def commandName(sFileName, iInSeg, sName):
         Get the old RTE name element. Its content shall become 
         the new segment name.
         """
-
         NS = getNS(eRte)
         eRteName = eRte.find(NS % 'name')
         if eRteName is None:
             raise Error("NONAME")
-        eName.text=sName
+        eRteName.text=sName
 
-    modifyGpxFile(sFileName, iInSeg, modifyName, sName)
+    return modifyGpxFile(sInFile,iInSeg,sOutFile,modifyName,sName)
 
 
 def commandPullAtomic(sInFile, iInSeg, sOutFile):
@@ -422,17 +422,16 @@ def commandFindClosestRoute(sInFile1,iInSeg1,sInFile2,iInSeg2):
     """
     Returns the index of the closest RTE point to the given route
     """
-    eInGpx = etree.parse(sInFile1).getroot()
-    if eInGpx is None:
+    eInGpx1 = etree.parse(sInFile1).getroot()
+    if eInGpx1 is None:
         raise commandError("NOROOT")
-    NS = getNS(InGpx)
+    NS = getNS(eInGpx1)
 
-    eInRtes1= eInGpx.findall(NS % 'rte')
+    eInRtes1= eInGpx1.findall(NS % 'rte')
     if eInRtes1 is None: 
         raise commandError("NOSEG")
     if (iInSeg1 < 0) or (iInSeg1 >= len(eInRtes1)):
         raise commandError("ILLSEGNUM")
-
     eInRtePts1 = eInRtes1[iInSeg1].findall(NS % 'rtept')
     if eInRtePts1 is None: 
         raise commandError("NOPTS")
@@ -442,13 +441,11 @@ def commandFindClosestRoute(sInFile1,iInSeg1,sInFile2,iInSeg2):
     if eInGpx2 is None:
         raise commandError("NOROOT")
     NS = getNS(eInGpx2)
-
     eInRtes2= eInGpx2.findall(NS % 'rte')
     if eInRtes2 is None: 
         raise commandError("NOSEG")
     if (iInSeg2 < 0) or (iInSeg2 >= len(eInRtes2)):
         raise commandError("ILLSEGNUM")
-
     eInRtePts2 = eInRtes2[iInSeg2].findall(NS % 'rtept')
     if eInRtePts2 is None: 
         raise commandError("NOPTS")
@@ -456,4 +453,4 @@ def commandFindClosestRoute(sInFile1,iInSeg1,sInFile2,iInSeg2):
 
     iP1,iP2,brg,rng = closestToRoute(lInLatLons1,lInLatLons2)
     return iP1,iP2,lInLatLons1[iP1].lat,lInLatLons1[iP1].lon, \
-        lInLatLons2[iP2].lat,lInLatLons2[iP1].lon,brg,rng 
+        lInLatLons2[iP2].lat,lInLatLons2[iP2].lon, brg,rng 

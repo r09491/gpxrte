@@ -25,7 +25,7 @@ def utc2local(dt, tzname=TZ):
     dt = localtz.normalize(dt.astimezone(localtz))
     return dt
 
-def getNowZulu():
+def getNowUtc():
     return datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
 
 if __name__ == '__main__':

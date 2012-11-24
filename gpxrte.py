@@ -38,17 +38,33 @@ def  runShow(inputs):
     return 0
 
 
-def  runSegmentName(inputs):
+def  runName(inputs):
     """
-    Sets the name of the RTE segment to the specified name.
+    Sets the name of the RTE segment to the specified or derived name.
     """
+
+    sInFile=os.path.abspath(inputs.infile)
+    if not os.path.isfile(sInFile):
+        print ("gpxrte :-( Illegal GPX input file %s." % (sInFile))
+        return -1
+
+    if inputs.outfile is None:
+        sOutFile = sInFile
+    else:
+        sOutFile=os.path.abspath(inputs.outfile)
+
+    if inputs.name is None:
+        sInName = os.path.splitext(os.path.basename(sOutFile))[0]
+    else:
+        sInName=inputs.name
+
     try:
-        commandName(inputs.anygpxfile, \
-                           inputs.segmentnumber, inputs.segmentname)
+        iNumSegs=commandName(sInFile,inputs.insegment,sInName,sOutFile)
     except commandError as e:
         print (e)
     else:
-        print ("gpxrte :-) Name completed ok.")
+        print ("gpxrte :-; %d segment(s) written." % (iNumSegs))
+        print ("gpxrte :-) Name RTEs ok.")
 
 
 def runSegmentPullCoord(inputs):
@@ -325,26 +341,23 @@ def runFindClosestCoord(inputs):
         print ("gpxrte :-( Illegal GPX input file %s." % (sInFile))
         return -1
 
-    if not ((inputs.lat is None) and  (inputs.lon is None)):
-        if inputs.city is not None:
-            print ("gpxrte :-( Ambiguous coordinates")
-            return -4
-
+    if (inputs.lat is not None) and (inputs.lon is not None) and (inputs.city is None):
         lat, lon = inputs.lat, inputs.lon
     
-    elif inputs.city is not None:
+    elif (inputs.lat is None) and (inputs.lon is None) and (inputs.city is not None):
         lCoords= getCoords(inputs.city)
         if lCoords is None:
             print( "gpxrte :-( No in city coordinates available." )
             return -6
-        if inputs.cityindex is None:
-            print ("gpxrte :-| in city is ambiguous.")
+        elif len(lCoords) == 1:
+            place, (lat,lon) = lCoords[0]
+        elif (inputs.cityindex is None):
+            print ("gpxrte ;-) The city is ambiguous.")
             for i, (place,(lat,lon)) in enumerate(lCoords):
                 print("%d: %s (%.4f, %.4f)" % (i, place, lat, lon))
             return -7
-        if inputs.cityindex in range(len(lCoords)):
+        elif inputs.cityindex in range(len(lCoords)):
             place, (lat,lon) = lCoords[inputs.cityindex]
-            print(" From: %s (%.4f, %.4f)" % (place, lat, lon))
         else:
             print( "gpxrte :-( Illegal city index." )
             return -8
@@ -358,8 +371,8 @@ def runFindClosestCoord(inputs):
     except commandError as e:
         print (e)
     else:
-        print ("gpxrte :-) #%d(%.2f:%.2f)>%03.0f/%03.0f" % \
-                   (index,rLat,rLon,brg,rng))
+        print ("gpxrte :-) FROM #%d (%.4f:%.4f) TO %s (%.4f:%.4f) > %03.0f/%03.0f" % \
+                   (index,rLat,rLon,place.split(',')[0].strip(),lat,lon,brg,rng))
 
 
 def runFindClosestRoute(inputs):
@@ -382,7 +395,7 @@ def runFindClosestRoute(inputs):
     except commandError as e:
         print (e)
     else:
-        print ("gpxrte :-) #%d(%.2f:%.2f)#%d(%.2f:%.2f)>%03.0f/%03.0f" % \
+        print ("gpxrte :-) FROM #%d(%.4f:%.4f) TO #%d(%.4f:%.4f) > %03.0f/%03.0f" % \
                    (i1,lat1,lon1,i2,lat2,lon2,brg,rng))
 
 
@@ -444,12 +457,16 @@ def parse(commandline):
 
 
     nameParser = subparsers.add_parser('name', help='Sets the name of a segment')
-    nameParser.add_argument(dest='segmentname', \
-                            help='segment name to set')
-    nameParser.add_argument(dest='segmentnumber', nargs='?', \
-                            type=int, default=0, \
-                            help='segment number to use')
-    nameParser.set_defaults(func=runSegmentName)
+    nameParser.add_argument('-s', '--insegment',dest='insegment',required=True, \
+                             type=int, help='Segment number to use for the name')
+    nameParser.add_argument('-f', '--infile', dest='infile', required=True, \
+                            help='Any GPX file for input', )
+    nameParser.add_argument('-F', '--outfile', dest='outfile', \
+                            help='Any GPX file for output. If not provided overrides the input file')
+    nameParser.add_argument('-n', '--name', dest='name', \
+                            help='The name to set. If not provided derives from the nominal output file')
+    nameParser.set_defaults(func=runName)
+
     
     pullParser = subparsers.add_parser('pull', help='Pulls a segment')
     pullSubparser = pullParser.add_subparsers(help='subcommands pull')
@@ -592,9 +609,6 @@ def parse(commandline):
                             type=int, help='City index')
     findClosestSubparserCoord.add_argument('-s','--insegment',dest='insegment', \
                    type=int, required=True, help='Segment number to use for find')
-    findClosestSubparserCoord.add_argument('-t', '--intype', dest='intype', \
-                            choices=('trk', 'rte', 'wpt'), \
-                            default='rte', help='Segment type to use for find')
     findClosestSubparserCoord.add_argument('-f', '--infile', dest='infile', \
                             required=True, help='Any GPX file for find', )
     findClosestSubparserCoord.set_defaults(func=runFindClosestCoord)
