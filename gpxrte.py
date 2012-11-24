@@ -415,10 +415,10 @@ def  runDaimler(inputs):
         print ("gpxrte :-( Illegal GPX input file %s." % (sInFile))
         return -1
 
-    if inputs.outfile is None:
-        sOutFile = sInFile
-    else:
+    if inputs.outfile is not None:
         sOutFile=os.path.abspath(inputs.outfile)
+    else:
+        sOutFile = None
 
     try:
         iNumSegs=convertToRoute(sInFile,inputs.insegment,sOutFile)

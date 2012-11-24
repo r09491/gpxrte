@@ -20,7 +20,7 @@ def isRouteFileNameOk(sInRouteFileName):
 
 
 def getRouteFileName(sInRouteFileName):
-    if isRouteFileNameOk(sInRouteFileName):
+    if (sInRouteFileName is not None):
         return (sInRouteFileName)
     else:
         import datetime
@@ -89,8 +89,7 @@ def convertToRoute(sInFile,iInSeg,sOutFile):
     eOutRteLength.set('Unit','kilometer')
     eOutRteLength.set('Value', '%.2f' % (lengthOf(lLatLons)/1000.0))
 
-    if sOutFile is None:
-        sOutFile =getRouteFileName(sInRouteFileName)
+    sOutFile =getRouteFileName(sOutFile)
 
     writeGpxFile(eOutGpx,lLatLons,sOutFile)
     return len(eOutGpx.findall(outNS % 'rte'))
