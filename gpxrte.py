@@ -474,10 +474,10 @@ def parse(commandline):
     pullSubparserAtomic = pullSubparser.add_parser('atomic', \
                                help='Pulls complete segments')
     pullSubparserAtomic.add_argument('-s', '--insegment',dest='insegment', type=int, \
-                            required=True, help='Segment number to use for pull')
+                            required=True, help='Segment number to pull')
     pullSubparserAtomic.add_argument('-f', '--infile', dest='infile', required=True, \
                             help='Any GPX file for pull', )
-    pullSubparserAtomic.add_argument('-F', '--outfile', dest='outfile', \
+    pullSubparserAtomic.add_argument('-F', '--outfile', dest='outfile', required=True, \
                             help='Any GPX file for output', )
     pullSubparserAtomic.set_defaults(func=runSegmentPullAtomic)
 
