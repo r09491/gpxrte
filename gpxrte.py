@@ -5,6 +5,7 @@ import sys, os
 import string
 
 from rte.error import *  
+from rte.primitive import *  
 from rte.overviewcommands import *
 from rte.daimlercommands import *
 from rte.segmentcommands import *
@@ -371,8 +372,8 @@ def runFindClosestCoord(inputs):
     except commandError as e:
         print (e)
     else:
-        print ("gpxrte :-) FROM #%d (%.4f:%.4f) TO %s (%.4f:%.4f) > %03.0f/%03.0f" % \
-                   (index,rLat,rLon,place.split(',')[0].strip(),lat,lon,brg,rng))
+        print ("gpxrte :-) FROM #%d (%.4f:%.4f) TO %s (%.4f:%.4f) > %03.0f/%03.0f/%03.0f" % \
+                   (index,rLat,rLon,place.split(',')[0].strip(),lat,lon,brg,rng,iDeg(brg)))
 
 
 def runFindClosestRoute(inputs):
@@ -395,8 +396,8 @@ def runFindClosestRoute(inputs):
     except commandError as e:
         print (e)
     else:
-        print ("gpxrte :-) FROM #%d(%.4f:%.4f) TO #%d(%.4f:%.4f) > %03.0f/%03.0f" % \
-                   (i1,lat1,lon1,i2,lat2,lon2,brg,rng))
+        print ("gpxrte :-) FROM #%d(%.4f:%.4f) TO #%d(%.4f:%.4f) > %03.0f/%03.0f/%03.0f" % \
+                   (i1,lat1,lon1,i2,lat2,lon2,brg,rng,iDeg(brg)))
 
 
 def  runDaimler(inputs):
