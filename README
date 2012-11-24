@@ -1,0 +1,82 @@
+gpxrte
+======
+
+### Author: r09491 <sepp.heid@gmail.com>
+
+### Date: 24.11.2012
+
+### License
+
+'gpxrte' is Open Source software and licensed under the `GNU General
+Public License version 3 or later`. You are welcome to change and
+redistribute it under certain conditions.For more information see the
+`LICENSE` file.
+
+### Purpose
+
+'gpxrte' is a command line tool written in Python to manage the RTE
+segments of GPX files. The WPT and TRK segments are ignored.
+
+The provided functions facilitate the route planning for a GARMIN
+Oregon 450 and the navigation system used in a Mercedes car. Though
+both using GPX for guidance they do not understand what was recorded
+by the other. The original format conversion routines where soon
+followed by general purpose services then.
+
+
+### Caution
+
+I can only guarantee that 'gpxrte' works with my own equipment because
+I do not have the financial power to own more than one Oregon 450 and
+and more than one Mercedes to generalize my experiments.
+
+'gpxrte' is based on unoffical reengineering results without official
+documentation. Though reengineering is a little bit exaggerated in
+this case I do not know the iural impacts on your warranty etc.
+
+For the GARMIN you should not save the resulting files in its internal
+memory but on the sim card to be removed if the device refuses to boot
+(because of an contol character etc in a GPX file). Otherwise you
+might end up with a brick stone! Though it is an interesting
+experience to unbrick!
+
+
+### Getting started:
+
+After installation type the following on the command line of a
+terminal and you should get:
+
+$ gpxrte -h
+usage: gpxrte.py [-h] [-v]
+                 
+                 {show,name,pull,push,purge,flat,reverse,head,tail,swap,find,daimler}
+                 ...
+
+Tools to manage the content of a GPX file
+
+positional arguments:
+  {show,name,pull,push,purge,flat,reverse,head,tail,swap,find,daimler}
+                        commands
+    show                Shows the content of a GPX file
+    name                Sets the name of a segment
+    pull                Pulls a segment
+    push                Pushes a segment
+    purge               Purges a segment
+    flat                Flattens into segment
+    reverse             Reverses the segment
+    head                Heads the segment
+    tail                Tails the segment
+    swap                Swaps a round trip segment
+    find                Finds a segment
+    daimler             Generates a COMAND Online NTG 4.5 compatible route
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -v, --version         show program's version number and exit
+
+
+### Install
+
+1. lxml required: sudo apt-get install lxml (with ubuntu 12)
+2. geopy required: sudo apt-get install geopy (with ubuntu 12, not (1) python 3)
+3. clone gpxrte
