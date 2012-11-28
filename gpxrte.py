@@ -49,15 +49,11 @@ def  runName(inputs):
         print ("gpxrte :-( Illegal GPX input file %s." % (sInFile))
         return -1
 
-    if inputs.outfile is None:
-        sOutFile = sInFile
-    else:
-        sOutFile=os.path.abspath(inputs.outfile)
-
-    if inputs.name is None:
-        sInName = os.path.splitext(os.path.basename(sOutFile))[0]
-    else:
-        sInName=inputs.name
+    sOutFile = sInFile if inputs.outfile is None \
+        else os.path.abspath(inputs.outfile)
+    
+    sInName = os.path.splitext(os.path.basename(sOutFile))[0] \
+        if inputs.name is None else inputs.name
 
     try:
         iNumSegs=commandName(sInFile,inputs.insegment,sInName,sOutFile)
@@ -227,10 +223,8 @@ def  runFlat(inputs):
         print ("gpxrte :-( Illegal GPX input file %s." % (sInFile))
         return -1
 
-    if inputs.outfile is None:
-        sOutFile = sInFile
-    else:
-        sOutFile=os.path.abspath(inputs.outfile)
+    sOutFile = sInFile if inputs.outfile is None \
+        else sOutFile=os.path.abspath(inputs.outfile)
 
     try:
         iNumSegs=commandFlat(sInFile, sOutFile)
@@ -250,10 +244,8 @@ def  runReverse(inputs):
         print ("gpxrte :-( Illegal GPX input file %s." % (sInFile))
         return -1
 
-    if inputs.outfile is None:
-        sOutFile = sInFile
-    else:
-        sOutFile=os.path.abspath(inputs.outfile)
+    sOutFile = sInFile if inputs.outfile is None \
+        else os.path.abspath(inputs.outfile)
 
     try:
         iNumSegs=commandReverse(sInFile,inputs.insegment,sOutFile)
@@ -273,10 +265,9 @@ def  runHead(inputs):
         print ("gpxrte :-( Illegal GPX input file %s." % (sInFile))
         return -1
 
-    if inputs.outfile is None:
-        sOutFile = sInFile
-    else:
-        sOutFile=os.path.abspath(inputs.outfile)
+
+    sOutFile = sInFile if inputs.outfile is None \
+        else os.path.abspath(inputs.outfile)
 
     try:
         iNumSegs=commandHead(sInFile,inputs.insegment,inputs.inpoint,sOutFile)
@@ -296,10 +287,8 @@ def  runTail(inputs):
         print ("gpxrte :-( Illegal GPX input file %s." % (sInFile))
         return -1
 
-    if inputs.outfile is None:
-        sOutFile = sInFile
-    else:
-        sOutFile=os.path.abspath(inputs.outfile)
+    sOutFile = sInFile if inputs.outfile is None \
+        else os.path.abspath(inputs.outfile)
 
     try:
         iNumSegs=commandTail(sInFile,inputs.insegment,inputs.inpoint,sOutFile)
@@ -319,10 +308,8 @@ def  runSwap(inputs):
         print ("gpxrte :-( Illegal GPX input file %s." % (sInFile))
         return -1
 
-    if inputs.outfile is None:
-        sOutFile = sInFile
-    else:
-        sOutFile=os.path.abspath(inputs.outfile)
+    sOutFile = sInFile if inputs.outfile is None \
+        else os.path.abspath(inputs.outfile)
 
     try:
         iNumSegs=commandSwap(sInFile, inputs.insegment, inputs.inpoint, sOutFile)
@@ -402,12 +389,8 @@ def runFindClosestRoute(inputs):
 
 def  runDaimler(inputs):
     """
-    Converts an RTE segment to a daimler route compatible format. The gpx file
-    shall exist with a legal content. Segment types other than RTE are ignored.
-
-    If the specified file is consistent with the Daimler route naming covention
-    then the output is written to this file. Otherwise the file name is generated
-    according to the convention and written to this file. 
+    Converts the RTE segment of a GPX file to a daimler route
+    format. The GPX file shall exist with a legal content.
     """
 
     sInFile=os.path.abspath(inputs.infile)
@@ -415,10 +398,8 @@ def  runDaimler(inputs):
         print ("gpxrte :-( Illegal GPX input file %s." % (sInFile))
         return -1
 
-    if inputs.outfile is not None:
-        sOutFile=os.path.abspath(inputs.outfile)
-    else:
-        sOutFile = None
+     sOutFile=os.path.abspath(inputs.outfile) \
+         if inputs.outfile is not None else None
 
     try:
         iNumSegs=convertToRoute(sInFile,inputs.insegment,sOutFile)
