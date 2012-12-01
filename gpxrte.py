@@ -324,43 +324,56 @@ def runFindClosestCoord(inputs):
     """
     """
 
-    sInFile=os.path.abspath(inputs.infile)
-    if not os.path.isfile(sInFile):
-        print ("gpxrte :-( Illegal GPX input file %s." % (sInFile))
-        return -1
-
-    if (inputs.lat is not None) and (inputs.lon is not None) and (inputs.city is None):
-        lat, lon = inputs.lat, inputs.lon
-    
-    elif (inputs.lat is None) and (inputs.lon is None) and (inputs.city is not None):
+    if (inputs.city is not None) and \
+            (inputs.lat is None) and (inputs.lon is None): 
         lCoords= getCoords(inputs.city)
         if lCoords is None:
             print( "gpxrte :-( No in city coordinates available." )
             return -6
-        elif len(lCoords) == 1:
-            place, (lat,lon) = lCoords[0]
-        elif (inputs.cityindex is None):
-            print ("gpxrte ;-) The city is ambiguous.")
+     
+    if (inputs.infile is None) and (inputs.insegment is None):
+        if (inputs.cityindex is None):
             for i, (place,(lat,lon)) in enumerate(lCoords):
                 print("%d: %s (%.4f, %.4f)" % (i, place, lat, lon))
-            return -7
         elif inputs.cityindex in range(len(lCoords)):
             place, (lat,lon) = lCoords[inputs.cityindex]
+            print("%d: %s (%.4f, %.4f)" % (inputs.cityindex, place, lat, lon))
         else:
             print( "gpxrte :-( Illegal city index." )
-            return -8
+
     else:
-        print( "gpxrte :-( No coordinates" )
-        return -3
+        sInFile=os.path.abspath(inputs.infile)
+        if not os.path.isfile(sInFile):
+            print ("gpxrte :-( Illegal GPX input file %s." % (sInFile))
+            return -1
+
+        if (inputs.city is None) and \
+                (inputs.lat is not None) and (inputs.lon is not None):
+            lat, lon = inputs.lat, inputs.lon
+     
+        elif (lCoords is not None):
+            if len(lCoords) == 1:
+                place, (lat,lon) = lCoords[0]
+            elif (inputs.cityindex is None):
+                print ("gpxrte ;-) The city is ambiguous.")
+                return -7
+            elif inputs.cityindex in range(len(lCoords)):
+                place, (lat,lon) = lCoords[inputs.cityindex]
+            else:
+                print( "gpxrte :-( Illegal city index." )
+                return -8
+        else:
+            print( "gpxrte :-( No coordinates" )
+            return -3
  
-    try:
-        index,rLat,rLon,brg,rng = commandFindClosestCoord( \
-            inputs.infile,inputs.insegment,lat,lon)
-    except commandError as e:
-        print (e)
-    else:
-        print ("gpxrte :-) FROM #%d (%.4f:%.4f) TO %s (%.4f:%.4f) > %03.0f/%03.0f/%03.0f" % \
-                   (index,rLat,rLon,place.split(',')[0].strip(),lat,lon,brg,rng,iDeg(brg)))
+        try:
+            index,rLat,rLon,brg,rng = commandFindClosestCoord( \
+                inputs.infile,inputs.insegment,lat,lon)
+        except commandError as e:
+            print (e)
+        else:
+            print ("gpxrte :-) FROM #%d (%.4f:%.4f) TO %s (%.4f:%.4f) > %03.0f/%03.0f/%03.0f" % \
+                       (index,rLat,rLon,place.split(',')[0].strip(),lat,lon,brg,rng,iDeg(brg)))
 
 
 def runFindClosestRoute(inputs):
@@ -580,7 +593,7 @@ def parse(commandline):
     findClosestSubparser = findClosestParser.add_subparsers(help='subcommands find')
 
     findClosestSubparserCoord = findClosestSubparser.add_parser('coord', \
-                              help='Finds a route point closest to the coords or cities')
+               help='Finds a route point closest to the coords of the city')
     findClosestSubparserCoord.add_argument('-lat','--lat', dest='lat', \
                              type=float, help='Coord (lat)')
     findClosestSubparserCoord.add_argument('-lon','--lon', dest='lon', \
@@ -590,9 +603,9 @@ def parse(commandline):
     findClosestSubparserCoord.add_argument('-i','--cityindex',dest='cityindex',  \
                             type=int, help='City index')
     findClosestSubparserCoord.add_argument('-s','--insegment',dest='insegment', \
-                   type=int, required=True, help='Segment number to use for find')
+                   type=int, required=False, help='Segment number to use for find')
     findClosestSubparserCoord.add_argument('-f', '--infile', dest='infile', \
-                            required=True, help='Any GPX file for find', )
+                            required=False, help='Any GPX file', )
     findClosestSubparserCoord.set_defaults(func=runFindClosestCoord)
 
 
