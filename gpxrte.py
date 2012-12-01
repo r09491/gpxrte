@@ -323,7 +323,7 @@ def  runSwap(inputs):
 def runFindClosestCoord(inputs):
     """
     """
-
+    lCoords = None
     if (inputs.city is not None) and \
             (inputs.lat is None) and (inputs.lon is None): 
         lCoords= getCoords(inputs.city)
