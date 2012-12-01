@@ -283,7 +283,8 @@ def commandFlat(sInFile,sOutFile):
 
 def commandReverse(sInFile,iInSeg,sOutFile):
     """
-    Inverts the route
+    Inverts the route in the segment of the given input file and
+    stores the modifcations in the out files
     """
 
     eGpx = etree.parse(sInFile).getroot()
@@ -291,14 +292,15 @@ def commandReverse(sInFile,iInSeg,sOutFile):
         raise commandError("NOROOT")
     NS = getNS(eGpx)
 
-    eRtes= eGpx.findall(NS % 'rte')
+    eRtes = eGpx.findall(NS % 'rte')
     if eRtes is None: 
         raise commandError("NOSEG")
     if (iInSeg < 0) or (iInSeg >= len(eRtes)):
         raise commandError("ILLSEGNUM")
 
-    eRtePts=eRtes[iInSeg].findall(NS % 'rtept' )
-    for eRtePt in reversed(eRtePts):eGpx.append(eRtePt)
+    eRte = eRtes[iInSeg]
+    eRtePts=eRte.findall(NS % 'rtept' )
+    for eRtePt in reversed(eRtePts):eRte.append(eRtePt)
 
     writeGpxFile(eGpx,None,sOutFile)
     return len(eRtes)

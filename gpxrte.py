@@ -224,7 +224,7 @@ def  runFlat(inputs):
         return -1
 
     sOutFile = sInFile if inputs.outfile is None \
-        else sOutFile=os.path.abspath(inputs.outfile)
+        else os.path.abspath(inputs.outfile)
 
     try:
         iNumSegs=commandFlat(sInFile, sOutFile)
@@ -398,8 +398,8 @@ def  runDaimler(inputs):
         print ("gpxrte :-( Illegal GPX input file %s." % (sInFile))
         return -1
 
-     sOutFile=os.path.abspath(inputs.outfile) \
-         if inputs.outfile is not None else None
+    sOutFile=os.path.abspath(inputs.outfile) \
+        if inputs.outfile is not None else None
 
     try:
         iNumSegs=convertToRoute(sInFile,inputs.insegment,sOutFile)
