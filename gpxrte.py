@@ -532,11 +532,11 @@ def parse(commandline):
 
     reverseParser = subparsers.add_parser('reverse', help='Reverses the segment')
     reverseParser.add_argument('-s', '--insegment',dest='insegment',required=True, \
-                                   type=int, help='Segment number to use for reverse')
+                            type=int, help='Segment number to use for reverse')
     reverseParser.add_argument('-f', '--infile', dest='infile', \
                             required=True, help='Any GPX file for input', )
     reverseParser.add_argument('-F', '--outfile', dest='outfile', \
-                            required=True, help='Any GPX file for output', )
+                            required=False, help='Any GPX file for output')
     reverseParser.set_defaults(func=runReverse)
 
 
